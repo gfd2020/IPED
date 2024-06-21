@@ -89,6 +89,7 @@ import iped.engine.task.index.IndexItem;
 import iped.properties.BasicProps;
 import iped.utils.LocalizedFormat;
 import iped.viewers.util.ProgressDialog;
+import java.util.*;
 
 public class BookmarksManager implements ActionListener, ListSelectionListener, KeyListener {
 
@@ -540,21 +541,27 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
         final App app = App.get();
         IPEDMultiSource ipedCase = app.appCase;
         if (checked.isSelected()) {
-            int sourceId = 0;
             for (IPEDSource source : ipedCase.getAtomicSources()) {
-                BitSet ids = new BitSet();
-                BitSet idps = new BitSet();
+                BitSetSource idsBSS = new BitSetSource();
+                BitSetSource idpsBSS = new BitSetSource();
                 // we must add items in index order
-                final int finalSourceId = sourceId;
+                int sourceId = source.getSourceId();
                 source.getLuceneIdStream().forEach(luceneId -> {
                     int id = source.getId(luceneId);
-                    if (source.getBookmarks().isChecked(id) && !ids.get(id)) {
-                        ItemId itemId = new ItemId(finalSourceId, id);
-                        uniqueSelectedIds.add(itemId);
-                        ids.set(id);
+                    if (source.getBookmarks().isChecked(id)) {
+                        BitSet ids = idsBSS.getBitSet(sourceId);
+                        if (ids == null){
+                            ItemId itemId = new ItemId(sourceId, id);                            
+                            idsBSS.setBitSet(sourceId,id);
+                            uniqueSelectedIds.add(itemId);
+                        }else if (!ids.get(id)){
+                            ItemId itemId = new ItemId(sourceId, id);                            
+                            idsBSS.setBitSet(sourceId,id);
+                            uniqueSelectedIds.add(itemId);                            
+                        }
                         if(parentItems.isSelected()){
                             int idp = source.getParentId(id); 
-                            idps.set(idp);
+                            idpsBSS.setBitSet(sourceId,idp);                            
                         }
                     }
                 });
@@ -562,34 +569,51 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
                 try{
                     String textQuery = "";
                     if(subItems.isSelected()){
-                        textQuery = ids.toString();                        
-                        if (textQuery.compareTo("{}")!=0){
-                            textQuery = "parentId:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
-                            MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
-                            if (result != null){
-                                for (IItemId item : result.getIterator()) {
-                                    int id2 = item.getId();
-                                    if (!ids.get(id2)){
-                                        ItemId itemId2 = new ItemId(finalSourceId,id2);
-                                        uniqueSelectedIds.add(itemId2);
-                                        ids.set(id2);
+                        List<Integer> keys = idsBSS.getBitSetKeys();
+                        if (keys != null){
+                            for (int k : keys) {
+                                BitSet ids = idsBSS.getBitSet(k);
+                                if(ids != null){
+                                    textQuery = ids.toString();                        
+                                    if (textQuery.compareTo("{}")!=0){
+                                        textQuery = "parentId:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
+                                        MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
+                                        if (result != null){
+                                            for (IItemId item : result.getIterator()) {
+                                                int id2 = item.getId();
+                                                if (!ids.get(id2) && k==item.getSourceId()){
+                                                    ItemId itemId2 = new ItemId(item.getSourceId(),id2);
+                                                    uniqueSelectedIds.add(itemId2);
+                                                    ids.set(id2);
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                     if(parentItems.isSelected()){
-                        textQuery = idps.toString();
-                        if (textQuery.compareTo("{}")!=0){
-                            textQuery = "id:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
-                            MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
-                            if (result != null){
-                                for (IItemId item : result.getIterator()) {
-                                    int id2 = item.getId();
-                                    if (!ids.get(id2)){
-                                        ItemId itemId2 = new ItemId(finalSourceId,id2);
-                                        uniqueSelectedIds.add(itemId2);
-                                        ids.set(id2);
+                        List<Integer> keys = idpsBSS.getBitSetKeys();
+                        if (keys != null){
+                            for (int k : keys) {
+                                BitSet idps = idpsBSS.getBitSet(k);
+                                if(idps != null){                    
+                                    textQuery = idps.toString();
+                                    if (textQuery.compareTo("{}")!=0){
+                                        textQuery = "id:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
+                                        MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
+                                        if (result != null){
+                                            for (IItemId item : result.getIterator()) {
+                                                int id2 = item.getId();
+                                                BitSet ids = idsBSS.getBitSet(k);
+                                                if (ids!=null && !ids.get(id2) && k==item.getSourceId()){
+                                                    ItemId itemId2 = new ItemId(item.getSourceId(),id2);
+                                                    uniqueSelectedIds.add(itemId2);
+                                                    ids.set(id2);
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -597,9 +621,7 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                }    
-
-                sourceId++;
+                }
             }
         } else if (highlighted.isSelected()) {
             BitSet bitSet = new BitSet();
@@ -608,20 +630,20 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
                 bitSet.set(rowModel);
             }
             // we must add items in index order
-            BitSet ids = new BitSet();
-            BitSet idps = new BitSet();            
+            BitSetSource idsBSS = new BitSetSource();
+            BitSetSource idpsBSS = new BitSetSource();        
             bitSet.stream().forEach(rowModel -> {
                 IItemId itemId = app.ipedResult.getItem(rowModel);
                 uniqueSelectedIds.add(itemId);
                 int id = itemId.getId();
-                ids.set(id);
+                idsBSS.setBitSet(itemId.getSourceId(),id);
                 if(parentItems.isSelected()){
                     try {    
                         int luceneId = ipedCase.getLuceneId(itemId);                        
                         String parentId =  ipedCase.getSearcher().doc(luceneId).get(IndexItem.PARENTID);
                         if (parentId != null && !parentId.isEmpty()){
                             int idp = Integer.parseInt(parentId);
-                            idps.set(idp);
+                            idpsBSS.setBitSet(itemId.getSourceId(),idp);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -632,34 +654,51 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
             try{
                 String textQuery = "";
                 if(subItems.isSelected()){
-                    textQuery = ids.toString();                        
-                    if (textQuery.compareTo("{}")!=0){
-                        textQuery = "parentId:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
-                        MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
-                        if (result != null){
-                            for (IItemId item : result.getIterator()) {
-                                int id2 = item.getId();
-                                if (!ids.get(id2)){
-                                    ItemId itemId2 = new ItemId(item.getSourceId(),id2);
-                                    uniqueSelectedIds.add(itemId2);
-                                    ids.set(id2);
+                    List<Integer> keys = idsBSS.getBitSetKeys();
+                    if (keys != null){
+                        for (int k : keys) {
+                            BitSet ids = idsBSS.getBitSet(k);
+                            if(ids != null){
+                                textQuery = ids.toString();
+                                if (textQuery.compareTo("{}")!=0){
+                                    textQuery = "parentId:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
+                                    MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
+                                    if (result != null){
+                                        for (IItemId item : result.getIterator()) {
+                                            int id2 = item.getId();
+                                            if (!ids.get(id2) && k==item.getSourceId()){
+                                                ItemId itemId2 = new ItemId(item.getSourceId(),id2);
+                                                uniqueSelectedIds.add(itemId2);
+                                                ids.set(id2);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
                 if(parentItems.isSelected()){
-                    textQuery = idps.toString();
-                    if (textQuery.compareTo("{}")!=0){
-                        textQuery = "id:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
-                        MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
-                        if (result != null){
-                            for (IItemId item : result.getIterator()) {
-                                int id2 = item.getId();
-                                if (!ids.get(id2)){
-                                    ItemId itemId2 = new ItemId(item.getSourceId(),id2 );
-                                    uniqueSelectedIds.add(itemId2);
-                                    ids.set(id2);
+                    List<Integer> keys = idpsBSS.getBitSetKeys();
+                    if (keys != null){
+                        for (int k : keys) {
+                            BitSet idps = idpsBSS.getBitSet(k);
+                            if(idps != null){                    
+                                textQuery = idps.toString();
+                                if (textQuery.compareTo("{}")!=0){
+                                    textQuery = "id:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
+                                    MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
+                                    if (result != null){
+                                        for (IItemId item : result.getIterator()) {
+                                            int id2 = item.getId();
+                                            BitSet ids = idsBSS.getBitSet(k);
+                                            if (ids!=null && !ids.get(id2)  && k==item.getSourceId()){
+                                                ItemId itemId2 = new ItemId(item.getSourceId(),id2);
+                                                uniqueSelectedIds.add(itemId2);
+                                                ids.set(id2);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -842,4 +881,38 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
         }
         return false;
     }
+}
+
+class BitSetSource {
+
+    private Map<Integer, BitSet> bitSetMap = null; 
+
+    public BitSetSource(){
+        this.bitSetMap = new HashMap<Integer, BitSet>();
+    }
+
+    public void setBitSet(int source, int bit){
+        BitSet bs = this.bitSetMap.get(source);
+        if (bs == null){
+            BitSet nbs = new BitSet();
+            nbs.set(bit);
+            this.bitSetMap.put(source,nbs);
+        }else{
+            bs.set(bit);
+        }
+    }
+
+    public BitSet getBitSet(int source){
+        return this.bitSetMap.get(source);
+    }
+
+    public List<Integer> getBitSetKeys(){
+
+        if (this.bitSetMap != null)
+            return new ArrayList<Integer>(this.bitSetMap.keySet());
+        else
+            return null;
+
+    }
+
 }
