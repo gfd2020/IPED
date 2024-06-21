@@ -104,6 +104,8 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
     JRadioButton checked = new JRadioButton();
     ButtonGroup group = new ButtonGroup();
     JCheckBox duplicates = new JCheckBox();
+    JCheckBox parentItems = new JCheckBox();
+    JCheckBox subItems = new JCheckBox();
     JButton butAdd = new JButton(Messages.getString("BookmarksManager.Add")); //$NON-NLS-1$
     JButton butRemove = new JButton(Messages.getString("BookmarksManager.Remove")); //$NON-NLS-1$
     JButton butEdit = new JButton(Messages.getString("BookmarksManager.Edit")); //$NON-NLS-1$
@@ -148,6 +150,10 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
         group.add(highlighted);
         group.add(checked);
         highlighted.setSelected(true);
+        subItems.setText("Include Subitems"); //$NON-NLS-1$
+        subItems.setSelected(false);
+        parentItems.setText("Include Parent Item"); //$NON-NLS-1$
+        parentItems.setSelected(false);        
         duplicates.setText(Messages.getString("BookmarksManager.AddDuplicates")); //$NON-NLS-1$
         duplicates.setSelected(false);
 
@@ -163,11 +169,13 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
         butDelete.setToolTipText(Messages.getString("BookmarksManager.Delete.Tip")); //$NON-NLS-1$
         butEdit.setToolTipText(Messages.getString("BookmarksManager.Edit.Tip")); //$NON-NLS-1$
 
-        JPanel top = new JPanel(new GridLayout(3, 2, 0, 5));
+        JPanel top = new JPanel(new GridLayout(4, 2, 0, 5));
         top.add(msg);
         top.add(new JLabel());
         top.add(highlighted);
         top.add(checked);
+        top.add(subItems);
+        top.add(parentItems);
         top.add(duplicates);
 
         butAdd.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
@@ -530,19 +538,67 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
     private ArrayList<IItemId> getUniqueSelectedIds() {
         final ArrayList<IItemId> uniqueSelectedIds = new ArrayList<IItemId>();
         final App app = App.get();
+        IPEDMultiSource ipedCase = app.appCase;
         if (checked.isSelected()) {
             int sourceId = 0;
-            for (IPEDSource source : app.appCase.getAtomicSources()) {
+            for (IPEDSource source : ipedCase.getAtomicSources()) {
                 BitSet ids = new BitSet();
+                BitSet idps = new BitSet();
                 // we must add items in index order
                 final int finalSourceId = sourceId;
                 source.getLuceneIdStream().forEach(luceneId -> {
                     int id = source.getId(luceneId);
                     if (source.getBookmarks().isChecked(id) && !ids.get(id)) {
-                        uniqueSelectedIds.add(new ItemId(finalSourceId, id));
+                        ItemId itemId = new ItemId(finalSourceId, id);
+                        uniqueSelectedIds.add(itemId);
                         ids.set(id);
+                        if(parentItems.isSelected()){
+                            int idp = source.getParentId(id); 
+                            idps.set(idp);
+                        }
                     }
                 });
+
+                try{
+                    String textQuery = "";
+                    if(subItems.isSelected()){
+                        textQuery = ids.toString();                        
+                        if (textQuery.compareTo("{}")!=0){
+                            textQuery = "parentId:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
+                            MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
+                            if (result != null){
+                                for (IItemId item : result.getIterator()) {
+                                    int id2 = item.getId();
+                                    if (!ids.get(id2)){
+                                        ItemId itemId2 = new ItemId(finalSourceId,id2);
+                                        uniqueSelectedIds.add(itemId2);
+                                        ids.set(id2);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if(parentItems.isSelected()){
+                        textQuery = idps.toString();
+                        if (textQuery.compareTo("{}")!=0){
+                            textQuery = "id:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
+                            MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
+                            if (result != null){
+                                for (IItemId item : result.getIterator()) {
+                                    int id2 = item.getId();
+                                    if (!ids.get(id2)){
+                                        ItemId itemId2 = new ItemId(finalSourceId,id2);
+                                        uniqueSelectedIds.add(itemId2);
+                                        ids.set(id2);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }    
+
                 sourceId++;
             }
         } else if (highlighted.isSelected()) {
@@ -552,7 +608,66 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
                 bitSet.set(rowModel);
             }
             // we must add items in index order
-            bitSet.stream().forEach(rowModel -> uniqueSelectedIds.add(app.ipedResult.getItem(rowModel)));
+            BitSet ids = new BitSet();
+            BitSet idps = new BitSet();            
+            bitSet.stream().forEach(rowModel -> {
+                IItemId itemId = app.ipedResult.getItem(rowModel);
+                uniqueSelectedIds.add(itemId);
+                int id = itemId.getId();
+                ids.set(id);
+                if(parentItems.isSelected()){
+                    try {    
+                        int luceneId = ipedCase.getLuceneId(itemId);                        
+                        String parentId =  ipedCase.getSearcher().doc(luceneId).get(IndexItem.PARENTID);
+                        if (parentId != null && !parentId.isEmpty()){
+                            int idp = Integer.parseInt(parentId);
+                            idps.set(idp);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            try{
+                String textQuery = "";
+                if(subItems.isSelected()){
+                    textQuery = ids.toString();                        
+                    if (textQuery.compareTo("{}")!=0){
+                        textQuery = "parentId:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
+                        MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
+                        if (result != null){
+                            for (IItemId item : result.getIterator()) {
+                                int id2 = item.getId();
+                                if (!ids.get(id2)){
+                                    ItemId itemId2 = new ItemId(item.getSourceId(),id2);
+                                    uniqueSelectedIds.add(itemId2);
+                                    ids.set(id2);
+                                }
+                            }
+                        }
+                    }
+                }
+                if(parentItems.isSelected()){
+                    textQuery = idps.toString();
+                    if (textQuery.compareTo("{}")!=0){
+                        textQuery = "id:" + textQuery.replace("{","(").replace("}",")").replace(",","").trim();
+                        MultiSearchResult result = new IPEDSearcher(ipedCase, textQuery).multiSearch();
+                        if (result != null){
+                            for (IItemId item : result.getIterator()) {
+                                int id2 = item.getId();
+                                if (!ids.get(id2)){
+                                    ItemId itemId2 = new ItemId(item.getSourceId(),id2 );
+                                    uniqueSelectedIds.add(itemId2);
+                                    ids.set(id2);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }    
         }
 
         return uniqueSelectedIds;
