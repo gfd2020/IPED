@@ -45,11 +45,11 @@ public class ExportCaseDialog implements ActionListener {
     JDialog dialog = new JDialog(App.get());
 
     JTextField newPath = null;
-    JCheckBox chkCopyImages = new JCheckBox("Export Evidences",true);
-    JButton btnExport = new JButton("Export");
-    JButton btnClose = new JButton("Close");
-    JButton btnOpen = new JButton("Open");
-    JButton btnSize = new JButton("Estimate Size");
+    JCheckBox chkCopyImages = new JCheckBox(Messages.getString("ExportCase.ExportEvidence"),true);
+    JButton btnExport = new JButton(Messages.getString("ExportCase.Export"));
+    JButton btnClose = new JButton(Messages.getString("ExportCase.Close"));
+    JButton btnOpen = new JButton(Messages.getString("ExportCase.Open"));
+    JButton btnSize = new JButton(Messages.getString("ExportCase.EstimateSize"));
 
 
 
@@ -67,13 +67,13 @@ public class ExportCaseDialog implements ActionListener {
 
 
 
-        dialog.setTitle("Export Case");
+        dialog.setTitle(Messages.getString("ExportCase.Title"));
         dialog.setBounds(0, 0, 800, 250);
         dialog.setModal(true);
         dialog.setLocationRelativeTo(null);
 
 
-        JLabel msg = new JLabel("Export Folder:");
+        JLabel msg = new JLabel(Messages.getString("ExportCase.ExportFolder"));
         newPath = new JTextField();
         newPath.setText("");
 
@@ -218,7 +218,7 @@ public class ExportCaseDialog implements ActionListener {
             JFileChooser c = new JFileChooser();
             c.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
             c.setMultiSelectionEnabled(false);
-            c.setDialogTitle("Open Export Folder");
+            c.setDialogTitle(Messages.getString("ExportCase.OpenExportFolder"));
             int rVal = c.showOpenDialog(dialog);
             if (rVal == JFileChooser.APPROVE_OPTION) {
                 String arquivoAberto = c.getSelectedFile().getAbsolutePath();
@@ -241,13 +241,13 @@ public class ExportCaseDialog implements ActionListener {
 
                 File file = new File(dstPath);
                 if(!file.exists()){
-                    JOptionPane.showMessageDialog(dialog, "Invalid Export Folder!","Export Case",JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, Messages.getString("ExportCase.InvalidExportFolder"), Messages.getString("ExportCase.Title"),JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
                 //dstPath cannot be in same folder as srcPath, consequence -> infinite loop
                 if(isSubDirectory(casePath,file)){
-                    JOptionPane.showMessageDialog(dialog, "Export directory cannot be inside case folder!","Export Case",JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, Messages.getString("ExportCase.ExportDirectoryInside"),Messages.getString("ExportCase.Title"),JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
@@ -260,7 +260,7 @@ public class ExportCaseDialog implements ActionListener {
                 File tmpDst = new File (dstPath);
                 if (tmpDst.exists()){
                     if (!isDirEmpty(Paths.get(dstPath))){
-                        JOptionPane.showMessageDialog(dialog, "Export Folder is not empty!\n"+dstPath,"Export Case",JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(dialog, Messages.getString("ExportCase.ExportFolderEmpty")+"\n"+dstPath,Messages.getString("ExportCase.Title"),JOptionPane.ERROR_MESSAGE);
                         return;												
                     }	
                 }		

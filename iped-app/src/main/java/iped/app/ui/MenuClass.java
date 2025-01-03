@@ -349,7 +349,7 @@ public class MenuClass extends JPopupMenu {
 
         if (!isReport && !App.get().isMultiCase){
             this.addSeparator();
-            exportCase = new JMenuItem("Export Case"); //$NON-NLS-1$
+            exportCase = new JMenuItem(Messages.getString("MenuClass.ExportCase")); //$NON-NLS-1$
             exportCase.addActionListener(menuListener);
             this.add(exportCase);
         }        

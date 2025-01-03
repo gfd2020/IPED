@@ -72,7 +72,7 @@ public class ExportCase extends CancelableWorker<String, Integer> {
 
 		  if (estimateSizeOnly){
 			  if(success){	
-					JOptionPane.showMessageDialog(this.dialog, "Estimated Size: "+getEstimateSize(), "Export Case", JOptionPane.INFORMATION_MESSAGE);
+					JOptionPane.showMessageDialog(this.dialog, Messages.getString("ExportCase.EstimatedSize")+": "+getEstimateSize(), Messages.getString("ExportCase.Title"), JOptionPane.INFORMATION_MESSAGE);
                     dialog.setVisible(true);
 			  }
 		  }
@@ -80,7 +80,7 @@ public class ExportCase extends CancelableWorker<String, Integer> {
 			  if(success){
 					String msg = copyImages?"with":"without";
 					LOGGER.info("Exported Case {} evidences on folder '{}' - Size: {}",msg, dstPath, getEstimateSize());		
-					JOptionPane.showMessageDialog(this.dialog, "Case successfully exported to:\n"+dstPath, "Export Case", JOptionPane.INFORMATION_MESSAGE);
+					JOptionPane.showMessageDialog(this.dialog, Messages.getString("ExportCase.CaseExported")+":\n"+dstPath, Messages.getString("ExportCase.Title"), JOptionPane.INFORMATION_MESSAGE);
 			  }
 		  }
 	  }
@@ -219,7 +219,7 @@ public class ExportCase extends CancelableWorker<String, Integer> {
   @Override
   protected String doInBackground()  {
 
-	progressMonitor.setNote("Estimating total size");
+	progressMonitor.setNote(Messages.getString("ExportCase.EstimatingSize"));
 	File target = null;
 	File src = null;
 	String folderName = "evidences";
@@ -320,7 +320,7 @@ public class ExportCase extends CancelableWorker<String, Integer> {
 			ex.printStackTrace();
 			System.out.println(ex.getMessage());
 		if (progressMonitor != null)
-			JOptionPane.showMessageDialog(this.dialog, "Export Error! Verify aplication logs.", "Export Case", JOptionPane.ERROR_MESSAGE);	
+			JOptionPane.showMessageDialog(this.dialog, Messages.getString("ExportCase.ExportError"), Messages.getString("ExportCase.Title"), JOptionPane.ERROR_MESSAGE);	
 	}
 
     return null;
@@ -408,10 +408,10 @@ class RefreshProgress extends TimerTask {
 		else
 			timeLeft = (long)(((double)this.valores.totalMega - (double)this.valores.megas)/((double)this.valores.megas/(double)this.num));
 
-		String timeLeftString = "Time left: "+formatTime(timeLeft);	
+		String timeLeftString = Messages.getString("ExportCase.timeLeft")+": "+formatTime(timeLeft);	
 
        	progressMonitor.setProgress(this.valores.megas);
-		progressMonitor.setNote("<html><body>"+"Copying " + formatBytes(this.valores.megas) + " of " + formatBytes(this.valores.totalMega)+"<br>"+timeLeftString+"</body></html>");
+		progressMonitor.setNote("<html><body>"+Messages.getString("ExportCase.Copying")+" " + formatBytes(this.valores.megas) +" "+ Messages.getString("ExportCase.of") +" "+formatBytes(this.valores.totalMega)+"<br>"+timeLeftString+"</body></html>");
     }
 	public String formatTime(long tempo){
 
