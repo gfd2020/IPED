@@ -65,6 +65,9 @@ minTimeout = 180
 # Number of seconds to wait for each audio second transcription. 'minTimeout' param above is added to this.
 timeoutPerSec = 3
 
+# Enable SQLite's WAL mode to mitigate connection errors when the output directory is on a network share
+SQLiteWalMode = false
+
 #########################################
 # VoskTranscriptTask options
 #########################################

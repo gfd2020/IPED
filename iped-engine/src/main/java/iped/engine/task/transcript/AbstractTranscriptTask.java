@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.SQLiteConfig.SynchronousMode;
+import org.sqlite.SQLiteConfig.JournalMode;
 
 import iped.configuration.Configurable;
 import iped.configuration.IConfigurationDirectory;
@@ -119,6 +120,11 @@ public abstract class AbstractTranscriptTask extends AbstractTask {
             SQLiteConfig config = new SQLiteConfig();
             config.setSynchronous(SynchronousMode.OFF);
             config.setBusyTimeout(3600000);
+
+            if (transcriptConfig.getSqliteWalMode()){
+                config.setJournalMode( JournalMode.WAL );
+            }
+
             Connection conn = config.createConnection("jdbc:sqlite:" + db.getAbsolutePath());
 
             try (Statement stmt = conn.createStatement()) {

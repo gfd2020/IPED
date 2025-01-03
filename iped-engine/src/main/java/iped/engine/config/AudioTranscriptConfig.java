@@ -35,6 +35,7 @@ public class AudioTranscriptConfig extends AbstractTaskPropertiesConfig {
     private static final String SKIP_KNOWN_FILES = "skipKnownFiles";
     private static final String PRECISION = "precision";
     private static final String BATCH_SIZE = "batchSize";
+    private static final String SQLITE_WAL_MODE = "SQLiteWalMode";
 
     private List<String> languages = new ArrayList<>();
     private List<String> mimesToProcess = new ArrayList<>();
@@ -51,6 +52,7 @@ public class AudioTranscriptConfig extends AbstractTaskPropertiesConfig {
     private String remoteService;
     private String googleModel;
     private boolean skipKnownFiles = true;
+    private boolean sqliteWalMode = false;
     private String precision = "int8";
     private int batchSize = 1;
 
@@ -60,6 +62,10 @@ public class AudioTranscriptConfig extends AbstractTaskPropertiesConfig {
 
     public int getBatchSize() {
         return batchSize;
+    }
+
+    public boolean getSqliteWalMode() {
+        return this.sqliteWalMode;
     }
 
     public boolean getSkipKnownFiles() {
@@ -200,6 +206,10 @@ public class AudioTranscriptConfig extends AbstractTaskPropertiesConfig {
         if (value != null) {
             batchSize = Integer.parseInt(value.trim());
         }
+        value = properties.getProperty(SQLITE_WAL_MODE);
+        if (value != null) {
+            this.sqliteWalMode = Boolean.valueOf(value.trim());
+        }        
     }
 
     /**
