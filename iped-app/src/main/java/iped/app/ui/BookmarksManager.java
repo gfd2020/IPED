@@ -151,9 +151,9 @@ public class BookmarksManager implements ActionListener, ListSelectionListener, 
         group.add(highlighted);
         group.add(checked);
         highlighted.setSelected(true);
-        subItems.setText("Include Subitems"); //$NON-NLS-1$
+        subItems.setText(Messages.getString("BookmarksManager.IncludeSubitems")); //$NON-NLS-1$
         subItems.setSelected(false);
-        parentItems.setText("Include Parent Item"); //$NON-NLS-1$
+        parentItems.setText(Messages.getString("BookmarksManager.IncludeParentItem")); //$NON-NLS-1$
         parentItems.setSelected(false);        
         duplicates.setText(Messages.getString("BookmarksManager.AddDuplicates")); //$NON-NLS-1$
         duplicates.setSelected(false);
