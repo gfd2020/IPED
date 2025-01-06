@@ -30,12 +30,20 @@ def main():
     print(library_loaded, file=stdout, flush=True)
     print('whisperx' if whisperx_found else 'faster_whisper', file=stdout, flush=True)
     
-    import GPUtil
-    cudaCount = len(GPUtil.getGPUs())
+    #import GPUtil
+    #cudaCount = len(GPUtil.getGPUs())
+
+    try:
+        import torch
+        torch_found = torch.cuda.is_available()
+        cudaCount = torch.cuda.device_count();
+    except:
+        torch_found = False
+        cudaCount = 0
 
     print(str(cudaCount), file=stdout, flush=True)
 
-    if cudaCount > 0:
+    if cudaCount > 0 and torch_found:
         deviceId = 'cuda'
     else:
         deviceId = 'cpu'
