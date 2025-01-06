@@ -18,7 +18,7 @@ div#emblema {
 
 .MenuText:link, .MenuText:visited, .MenuText:active {
     font-family: 'Verdana';
-    font-size: 8pt; 
+    font-size: 12pt; 
     color: rgb(255,255,192);
     text-decoration: none;
 }
@@ -28,21 +28,21 @@ div#emblema {
 }
 
 .SmallText {
-    font-size: 10pt;
+    font-size: 12pt;
     font-weight: bold;
     color: white;
     text-decoration: none;
 }
 
 .SmallText1 {
-    font-size: 9pt;
+    font-size: 12pt;
     font-weight: bold;
     color: white;
     text-decoration: none;
 }
 
 .SmallText2 {
-    font-size: 9pt;
+    font-size: 12pt;
     font-weight: bold;
     color: white;
     text-decoration: none;
@@ -59,7 +59,7 @@ div#emblema {
 }
 
 .SmallText3 {
-    font-size: 8pt;
+    font-size: 12pt;
     font-weight: bold;
     color: white; 
     text-decoration: none;
