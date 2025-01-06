@@ -81,6 +81,8 @@ import iped.utils.IOUtil;
 import iped.utils.ImageUtil;
 import iped.utils.LocalizedFormat;
 import iped.viewers.util.ImageMetadataUtil;
+import iped.engine.Version;
+import java.util.Locale;
 
 /**
  * Tarefa de geração de relatório no formato HTML do itens selecionados, gerado
@@ -451,9 +453,17 @@ public class HTMLReportTask extends AbstractTask {
 
     private void processCaseInfo(File src, File target) throws Exception {
         EncodedFile arq = EncodedFile.readFile(src, StandardCharsets.UTF_8); //$NON-NLS-1$
+
+        Date dataAtual = new Date();
+        DateFormat formatador = DateFormat.getDateInstance(DateFormat.FULL, new Locale("pt", "BR"));
+        String dataExtenso = formatador.format(dataAtual);	
+	    replace(arq.content, "%VERSAO%", Version.APP_NAME);
+	    replace(arq.content, "%DATA%", dataExtenso);
+
         replace(arq.content, "%REPORT%", info.reportNumber); //$NON-NLS-1$
         replace(arq.content, "%REPORT_DATE%", info.reportDate); //$NON-NLS-1$
-        replace(arq.content, "%EXAMINERS%", formatPeritos()); //$NON-NLS-1$
+        //replace(arq.content, "%EXAMINERS%", formatPeritos()); //$NON-NLS-1$
+        replace(arq.content, "%EXAMINERS%", String.join("", info.examiners)); //$NON-NLS-1$
         replace(arq.content, "%HEADER%", info.reportHeader); //$NON-NLS-1$
         replace(arq.content, "%TITLE%", info.reportTitle); //$NON-NLS-1$
         replace(arq.content, "%INVESTIGATION%", info.caseNumber); //$NON-NLS-1$
