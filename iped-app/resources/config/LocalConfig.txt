@@ -3,7 +3,7 @@
 ########################################################################
 
 # Defines program localization/language. Currently there are localizations for 'en', 'pt-BR', 'it-IT', 'de-DE', 'es-AR' and 'fr-FR'.
-locale = en
+locale = pt-BR
 
 # Temporary directory for processing: "default" uses the system temporary folder.
 # Configure it on a folder free of antivirus, system indexing or restoring. Using a SSD disk is highly recommended.
@@ -11,7 +11,7 @@ indexTemp = default
 
 # Enable if indexTemp is on a SSD disk. Optimizations are made that can improve processing speed up to 2x.
 # Do not enable it if indexTemp is NOT on SSD or you will have performance problems.
-indexTempOnSSD = false
+indexTempOnSSD = true
 
 # Enable if output/case folder is on SSD. If enabled, index is created directly in case folder,
 # not in indexTemp, so you will need less free space in temp folder.
