@@ -196,6 +196,37 @@ public class GraphGenerator {
         groupContacts(graphService, config, "TELEFONE");
         groupContacts(graphService, config, "EMAIL");
         groupContacts(graphService, config, "FACEBOOK");
+        groupFiscalTransactions(graphService, config);
+    }
+
+    private void groupFiscalTransactions(GraphService graphService, GraphConfiguration config) {
+        String query = "MATCH (a:ORGANIZATION)-[r:TRANSACTION]->(b:ORGANIZATION) " +
+                "WITH a, b, sum(r.value) as totalValue, sum(r.icms) as totalIcms, count(r) as count " +
+                "MERGE (a)-[t:FISCAL_TRANSACTION]->(b) " +
+                "SET t.totalValue = totalValue, t.totalIcms = totalIcms, t.count = count";
+
+        query = "MATCH (a:ORGANIZATION)-[r:TRANSACTION]->(b:ORGANIZATION) " +
+                "WITH a, b, sum(toFloat(r.value)) as sumVal, sum(toFloat(r.icms)) as sumIcms, count(r) as cnt, collect(r) as rels\n"
+                +
+                "MERGE (a)-[t:FISCAL_TRANSACTION]->(b)\n" +
+                "SET t.totalValue = sumVal, t.totalIcms = sumIcms, t.count = cnt, t.dataSource = head(rels).dataSource, t.relId = head(rels).relId\n"
+                +
+                "FOREACH (rel in rels | DELETE rel)\n";
+
+        GraphDatabaseService graphDB = graphService.getGraphDb();
+        Transaction tx = null;
+        try {
+            tx = graphDB.beginTx();
+            LOGGER.info("Grouping fiscal transactions...");
+            tx.execute(query);
+            tx.commit();
+            LOGGER.info("Grouping fiscal transactions finished.");
+        } catch (Exception e) {
+            LOGGER.error("Error grouping fiscal transactions", e);
+        } finally {
+            if (tx != null)
+                tx.close();
+        }
     }
 
     private boolean isHashLikeContact(String name) {

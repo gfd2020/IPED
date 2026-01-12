@@ -95,10 +95,12 @@ public class UICaseDataLoader extends SwingWorker<Void, Integer> {
             checkIfProcessingFinished(App.get().appCase);
 
             App.get().appCase.checkImagePaths();
-            App.get().appCase.getMultiBookmarks().addSelectionListener(App.get().getViewerController().getHtmlLinkViewer());
+            App.get().appCase.getMultiBookmarks()
+                    .addSelectionListener(App.get().getViewerController().getHtmlLinkViewer());
             App.get().getViewerController().notifyAppLoaded();
 
-            // only configure PreviewRepository when opening in AppMain (case not being processed)
+            // only configure PreviewRepository when opening in AppMain (case not being
+            // processed)
             if (Manager.getInstance() == null) {
                 App.get().appCase.getAtomicSources().forEach(ipedCase -> {
                     PreviewRepositoryManager.configureReadOnly(ipedCase.getModuleDir());
@@ -172,7 +174,9 @@ public class UICaseDataLoader extends SwingWorker<Void, Integer> {
                     }
                 }
                 if (message.length() > 0) {
-                    JOptionPane.showMessageDialog(App.get(), Messages.getString("ProcessingNotFinished.message") + message, Messages.getString("ProcessingNotFinished.title"), JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(App.get(),
+                            Messages.getString("ProcessingNotFinished.message") + message,
+                            Messages.getString("ProcessingNotFinished.title"), JOptionPane.WARNING_MESSAGE);
                 }
             }
         });
@@ -189,7 +193,8 @@ public class UICaseDataLoader extends SwingWorker<Void, Integer> {
                 }
                 JOptionPane.showMessageDialog(App.get(), Messages.getString("AppLazyInitializer.errorMsg.line1") //$NON-NLS-1$
                         + Messages.getString("AppLazyInitializer.errorMsg.line2") //$NON-NLS-1$
-                        + App.get().getLogConfiguration().getLogFile() + Messages.getString("AppLazyInitializer.errorMsg.line3") + msg, // $NON-NLS-1$
+                        + App.get().getLogConfiguration().getLogFile()
+                        + Messages.getString("AppLazyInitializer.errorMsg.line3") + msg, // $NON-NLS-1$
                         Messages.getString("AppLazyInitializer.errorTitle"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
             }
         });

@@ -113,6 +113,15 @@ public class GraphFileWriter implements Closeable, Flushable {
 
     }
 
+    public void configureRelationshipFields(String relationshipName, Map<String, String> types) {
+        try {
+            CSVWriter writer = getRelationshipWriter(DynRelationshipType.withName(relationshipName));
+            writer.fieldTypes.putAll(types);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void openExistingCSVs(File root) {
         try {
             File[] files = root.listFiles();
@@ -217,7 +226,14 @@ public class GraphFileWriter implements Closeable, Flushable {
             for (String field : fields) {
                 String type = types.get(field);
                 if (type == null) {
-                    type = "string";
+                    if (field.equals("value") || field.equals("icms") || field.equals("totalValue")
+                            || field.equals("totalIcms")) {
+                        type = "double";
+                    } else if (field.equals("count")) {
+                        type = "int";
+                    } else {
+                        type = "string";
+                    }
                 }
                 headers.add(field + ":" + type);
             }
@@ -411,9 +427,13 @@ public class GraphFileWriter implements Closeable, Flushable {
                         for (File input : subFiles) {
                             File dest = new File(output, num + File.separator + input.getName().replace(".gzip", ""));
                             dest.getParentFile().mkdirs();
-                            if (input.getName().startsWith(NODE_CSV_PREFIX) && !input.getName().contains(HEADER_CSV_STR) && input.getName().endsWith(".csv.gzip")) {
-                                try (BufferedWriter writer = Files.newBufferedWriter(dest.toPath(), StandardOpenOption.APPEND, StandardOpenOption.CREATE);
-                                        BufferedReader reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(input.toPath())), StandardCharsets.UTF_8))) {
+                            if (input.getName().startsWith(NODE_CSV_PREFIX) && !input.getName().contains(HEADER_CSV_STR)
+                                    && input.getName().endsWith(".csv.gzip")) {
+                                try (BufferedWriter writer = Files.newBufferedWriter(dest.toPath(),
+                                        StandardOpenOption.APPEND, StandardOpenOption.CREATE);
+                                        BufferedReader reader = new BufferedReader(new InputStreamReader(
+                                                new GZIPInputStream(Files.newInputStream(input.toPath())),
+                                                StandardCharsets.UTF_8))) {
                                     String line = null;
                                     while ((line = reader.readLine()) != null) {
                                         String id = line.substring(0, line.indexOf(','));
@@ -431,7 +451,8 @@ public class GraphFileWriter implements Closeable, Flushable {
                         File importArgs = new File(output, num + "/" + ARG_FILE_NAME);
                         String args = new String(Files.readAllBytes(importArgs.toPath()), StandardCharsets.UTF_8);
                         args = args.replace("=", "=" + num + "/").replace(",", "," + num + "/");
-                        Files.write(importArgs.toPath(), args.getBytes(StandardCharsets.UTF_8), StandardOpenOption.TRUNCATE_EXISTING);
+                        Files.write(importArgs.toPath(), args.getBytes(StandardCharsets.UTF_8),
+                                StandardOpenOption.TRUNCATE_EXISTING);
 
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -573,11 +594,11 @@ public class GraphFileWriter implements Closeable, Flushable {
         private Set<String> prevNodeRecords = Collections
                 .newSetFromMap(new LinkedHashMap<String, Boolean>(16, 0.75f, true) {
                     /**
-					 * 
-					 */
-					private static final long serialVersionUID = 1L;
+                     * 
+                     */
+                    private static final long serialVersionUID = 1L;
 
-					@Override
+                    @Override
                     protected boolean removeEldestEntry(Entry<String, Boolean> entry) {
                         return this.size() > 10000;
                     }
