@@ -255,9 +255,11 @@ public class GraphTask extends AbstractTask {
         String mime = evidence.getMediaType().toString();
 
         // Debug logging to verify detection
-        if (evidence.getName().toLowerCase().endsWith(".xml") || evidence.getName().toLowerCase().endsWith(".pdf")) {
-            logger.info("Checking graph candidate: " + evidence.getName() + " [" + mime + "]");
-        }
+        // if (evidence.getName().toLowerCase().endsWith(".xml") ||
+        // evidence.getName().toLowerCase().endsWith(".pdf")) {
+        // logger.info("Checking graph candidate: " + evidence.getName() + " [" + mime +
+        // "]");
+        // }
 
         if (mime.startsWith(NFE_XML) || mime.startsWith(CTE_XML) || mime.startsWith(NFE_PDF)
                 || mime.startsWith(CTE_PDF)) {
@@ -849,13 +851,15 @@ public class GraphTask extends AbstractTask {
                     vICMS = extractMoneyAfterKeyword(text, "V. ICMS");
 
                 // GraphTask: Detailed logging for PDF extraction debugging
-                logger.info(String.format(
-                        "GraphTask Extraction [%s]: Type=%s, Emit='%s' (%s), Dest='%s' (%s), Val=%.2f, ICMS=%.2f",
-                        evidence.getName(),
-                        (evidence.getMediaType().toString().toLowerCase().contains("cte") ? "CTe" : "NFe"),
-                        emitName, emitCNPJ,
-                        destName, destCNPJ,
-                        vProd, vICMS));
+                // logger.info(String.format(
+                // "GraphTask Extraction [%s]: Type=%s, Emit='%s' (%s), Dest='%s' (%s),
+                // Val=%.2f, ICMS=%.2f",
+                // evidence.getName(),
+                // (evidence.getMediaType().toString().toLowerCase().contains("cte") ? "CTe" :
+                // "NFe"),
+                // emitName, emitCNPJ,
+                // destName, destCNPJ,
+                // vProd, vICMS));
 
             } else {
                 // Parse XML
@@ -959,8 +963,9 @@ public class GraphTask extends AbstractTask {
                         "cnpj", destCNPJ,
                         DynRelationshipType.withName("FISCAL_TRANSACTION"), props);
             } else {
-                logger.info("GraphTask: Skipping NFe/CTe " + evidence.getName() + " - Missing CNPJs. Emit: " + emitCNPJ
-                        + ", Dest: " + destCNPJ);
+                // logger.info("GraphTask: Skipping NFe/CTe " + evidence.getName() + " - Missing
+                // CNPJs. Emit: " + emitCNPJ
+                // + ", Dest: " + destCNPJ);
             }
         } catch (Exception e) {
             logger.error("Error processing NFe/CTe graph for item " + evidence.getName(), e);

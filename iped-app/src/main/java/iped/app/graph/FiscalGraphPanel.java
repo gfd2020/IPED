@@ -146,7 +146,7 @@ public class FiscalGraphPanel extends JPanel {
             webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
                 if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
                     JSObject win = (JSObject) webEngine.executeScript("window");
-                    win.setMember("java", new JavaBridge());
+                    win.setMember("java", new JavaBridge(detailsArea));
                 }
             });
 
@@ -550,7 +550,13 @@ public class FiscalGraphPanel extends JPanel {
         }
     }
 
-    public class JavaBridge {
+    public static class JavaBridge {
+        private final JTextArea detailsArea;
+
+        public JavaBridge(JTextArea detailsArea) {
+            this.detailsArea = detailsArea;
+        }
+
         public void select(String text) {
             javax.swing.SwingUtilities.invokeLater(() -> {
                 if (detailsArea != null) {
