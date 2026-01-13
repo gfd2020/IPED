@@ -122,11 +122,26 @@
     		<artifactId>imageio-bmp</artifactId>
     		<version>${twelvemonkeys.version}</version>
 	  	</dependency>
-	  	<dependency>
+        <dependency>
 	  	    <!--See https://github.com/sepinf-inc/IPED/issues/1530-->
-            <groupId>com.twelvemonkeys.imageio</groupId>
-            <artifactId>imageio-tiff</artifactId>
-            <version>${twelvemonkeys.version}</version>
+    		<groupId>com.twelvemonkeys.imageio</groupId>
+    		<artifactId>imageio-tiff</artifactId>
+    		<version>${twelvemonkeys.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>17.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>17.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-swing</artifactId>
+            <version>17.0.2</version>
         </dependency>
 	</dependencies>
 
