@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
+import iped.localization.LocaleResolver;
 import iped.utils.UTF8Properties;
 
 public class AudioTranscriptConfig extends AbstractTaskPropertiesConfig {
@@ -36,6 +37,7 @@ public class AudioTranscriptConfig extends AbstractTaskPropertiesConfig {
     private static final String PRECISION = "precision";
     private static final String BATCH_SIZE = "batchSize";
     private static final String SQLITE_WAL_MODE = "SQLiteWalMode";
+    private static final String DEVICE = "device";
 
     private List<String> languages = new ArrayList<>();
     private List<String> mimesToProcess = new ArrayList<>();
@@ -55,6 +57,11 @@ public class AudioTranscriptConfig extends AbstractTaskPropertiesConfig {
     private boolean sqliteWalMode = false;
     private String precision = "int8";
     private int batchSize = 1;
+    private String device = "cpu";
+
+    public String getDevice() {
+        return device;
+    }
 
     public String getPrecision() {
         return precision;
@@ -147,7 +154,7 @@ public class AudioTranscriptConfig extends AbstractTaskPropertiesConfig {
 
         String langs = properties.getProperty(LANG_KEY).trim();
         if (LANG_AUTO_VAL.equalsIgnoreCase(langs)) {
-            languages.add(System.getProperty(iped.localization.Messages.LOCALE_SYS_PROP));
+            languages.add(LocaleResolver.getLocaleString());
         } else {
             for (String lang : langs.split(";")) {
                 languages.add(lang.trim());
@@ -210,6 +217,11 @@ public class AudioTranscriptConfig extends AbstractTaskPropertiesConfig {
         if (value != null) {
             this.sqliteWalMode = Boolean.valueOf(value.trim());
         }        
+
+        value = properties.getProperty(DEVICE);
+        if (value != null && !value.isBlank()) {
+            device = value.strip();
+        }
     }
 
     /**
@@ -221,11 +233,15 @@ public class AudioTranscriptConfig extends AbstractTaskPropertiesConfig {
     public void clearTranscriptionServiceAddress(File moduleOutput) throws IOException {
         File config = new File(moduleOutput, "conf/" + CONF_FILE);
         if (config.exists() && config.canWrite()) {
+            String[] keys = { WAV2VEC2_SERVICE, REMOTE_SERVICE };
             List<String> lines = Files.readAllLines(config.toPath());
             List<String> outLines = new ArrayList<>();
             for (String line : lines) {
-                if (!line.isEmpty() && (line.trim().startsWith(WAV2VEC2_SERVICE) || line.substring(1).trim().startsWith(WAV2VEC2_SERVICE))) {
-                    line = "# " + WAV2VEC2_SERVICE + " = 127.0.0.1:11111";
+                for (String key : keys) {
+                    if (!line.isEmpty() && (line.trim().startsWith(key) || line.substring(1).trim().startsWith(key))) {
+                        line = "# " + key + " = 127.0.0.1:11111";
+                        break;
+                    }
                 }
                 outLines.add(line);
             }

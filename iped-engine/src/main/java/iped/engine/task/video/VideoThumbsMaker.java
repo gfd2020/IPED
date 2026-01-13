@@ -41,13 +41,13 @@ public class VideoThumbsMaker {
     private String mplayer = "mplayer.exe"; //$NON-NLS-1$
     private Boolean videoThumbsOriginalDimension = false;
     private int maxDimensionSize = 1024;
+    private int compression = 50;
     private String numFramesEquation;
     private ScriptEngine scriptEngine;
     private int timeoutProcess = 45000;
     private int timeoutInfo = 15000;
     private int timeoutFirstCall = 300000;
     private boolean verbose = false;
-    private int quality = 50;
     private boolean firstCall = true;
     private static final String prefix = "_vtm"; //$NON-NLS-1$
     private int ignoreWaitKeyFrame;
@@ -182,8 +182,8 @@ public class VideoThumbsMaker {
             if (maxThumbs < curr) {
                 maxThumbs = curr;
             }
-            if (maxSize < config.getThumbWidth()) {
-                maxSize = config.getThumbWidth();
+            if (maxSize < config.getThumbSize()) {
+                maxSize = config.getThumbSize();
             }
         }
 
@@ -237,7 +237,7 @@ public class VideoThumbsMaker {
             cmds.add(videoStream);
         }
 
-        cmds.addAll(Arrays.asList(new String[] { "-vo", "jpeg:smooth=50:nobaseline:quality=" + quality}));
+        cmds.addAll(Arrays.asList(new String[] { "-vo", "jpeg:smooth=50:nobaseline:quality=" + compression}));
 
         String rot = null;
         boolean transposed = false;
@@ -463,8 +463,14 @@ public class VideoThumbsMaker {
         int border = config.getBorder();
         int w, h;
         // setting dimension for gallery thumbs
-        w = config.getThumbWidth();
-        h = dimension.height * w / dimension.width;
+        int size = config.getThumbSize();
+        if (dimension.width >= dimension.height) {
+            w = size;
+            h = dimension.height * w / dimension.width;
+        } else {
+            h = size;
+            w = dimension.width * h / dimension.height;
+        }
         if (w > maxDimensionSize) {
             w = maxDimensionSize;
         }
@@ -496,7 +502,7 @@ public class VideoThumbsMaker {
         }
         g2.dispose();
         ImageUtil.saveJpegWithMetadata(img, config.getOutFile(),
-                "Frames=" + config.getRows() + "x" + config.getColumns()); //$NON-NLS-1$ //$NON-NLS-2$
+                "Frames=" + config.getRows() + "x" + config.getColumns(), compression);
     }
 
     private final ExecResult run(String[] cmds, int timeout, File currDir) {
@@ -598,6 +604,10 @@ public class VideoThumbsMaker {
 
     public void setMaxDimensionSize(int maxDimensionSize) {
         this.maxDimensionSize = maxDimensionSize;
+    }
+
+    public void setCompression(int compression) {
+        this.compression = compression;
     }
 
     public Boolean getVideoThumbsOriginalDimension() {

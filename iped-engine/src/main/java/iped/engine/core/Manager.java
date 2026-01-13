@@ -29,7 +29,6 @@ import java.nio.file.StandardOpenOption;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.logging.log4j.Level;
@@ -57,7 +56,6 @@ import iped.engine.CmdLineArgs;
 import iped.engine.config.AnalysisConfig;
 import iped.engine.config.Configuration;
 import iped.engine.config.ConfigurationManager;
-import iped.engine.config.FileSystemConfig;
 import iped.engine.config.IndexTaskConfig;
 import iped.engine.config.LocalConfig;
 import iped.engine.config.SplashScreenConfig;
@@ -76,6 +74,7 @@ import iped.engine.localization.Messages;
 import iped.engine.lucene.ConfiguredFSDirectory;
 import iped.engine.lucene.CustomIndexDeletionPolicy;
 import iped.engine.lucene.analysis.AppAnalyzer;
+import iped.engine.preview.PreviewRepositoryManager;
 import iped.engine.search.IPEDSearcher;
 import iped.engine.search.IndexerSimilarity;
 import iped.engine.search.ItemSearcher;
@@ -153,8 +152,6 @@ public class Manager {
     private Thread commitThread = null;
     AtomicLong partialCommitsTime = new AtomicLong();
 
-    private final AtomicBoolean initSleuthkitServers = new AtomicBoolean(false);
-
     private static final String appWinExeFileName = "IPED-SearchApp.exe";
 
     static {
@@ -229,7 +226,7 @@ public class Manager {
         return indexDir;
     }
 
-    Worker[] getWorkers() {
+    public Worker[] getWorkers() {
         return workers;
     }
 
@@ -270,6 +267,8 @@ public class Manager {
             LOGGER.info("Evidence " + (i++) + ": '{}'", source.getAbsolutePath()); //$NON-NLS-1$ //$NON-NLS-2$
         }
 
+        PreviewRepositoryManager.configureWritable(output);
+
         EvidenceStatus status = new EvidenceStatus(output.getParentFile());
 
         try {
@@ -281,8 +280,6 @@ public class Manager {
             }
 
             initWorkers();
-
-            initSleuthkitServers();
 
             status.addProcessingEvidences(args);
             status.save();
@@ -306,6 +303,7 @@ public class Manager {
 
         } finally {
             closeItemProducers();
+            PreviewRepositoryManager.close(output);
         }
 
         filterKeywords();
@@ -371,16 +369,6 @@ public class Manager {
         if (producer != null) {
             producer.interrupt();
             // produtor.join(5000);
-        }
-    }
-
-    public synchronized void initSleuthkitServers() throws InterruptedException {
-        File tskDB = SleuthkitReader.getSleuthkitDB(output);
-        FileSystemConfig fsConfig = ConfigurationManager.get().findObject(FileSystemConfig.class);
-        if (tskDB.exists() && fsConfig.isRobustImageReading()) {
-            if (!initSleuthkitServers.getAndSet(true)) {
-                SleuthkitClient.initSleuthkitServers(tskDB.getParent());
-            }
         }
     }
 
@@ -560,6 +548,9 @@ public class Manager {
         for (int k = 0; k < workers.length; k++) {
             workers[k] = new Worker(k, caseData, writer, output, this);
         }
+        for (Worker w : workers) {
+            w.init();
+        }
 
         // Execução dos workers após todos terem sido instanciados e terem inicializado
         // suas tarefas
@@ -620,7 +611,7 @@ public class Manager {
                             "Changed to processing queue with priority " + processingQueues.getCurrentQueuePriority()); //$NON-NLS-1$
                     caseData.putCaseObject(IItemSearcher.class.getName(),
                             new ItemSearcher(output.getParentFile(), writer));
-                    processingQueues.addLastToCurrentQueue(queueEnd);
+                    processingQueues.addToCurrentQueue(queueEnd);
                     for (int k = 0; k < workers.length; k++) {
                         workers[k].processNextQueue();
                     }
@@ -910,6 +901,12 @@ public class Manager {
             if (!currentProfile.equals(defaultProfile)) {
                 IOUtil.copyDirectory(currentProfile, new File(output, Configuration.CASE_PROFILE_DIR), true);
                 resetLocalConfigToPortable(new File(output, Configuration.CASE_PROFILE_DIR + "/" + Configuration.LOCAL_CONFIG));
+            }
+            if (caseData.isIpedReport()) {
+                File caseProfile = new File(Configuration.getInstance().appRoot, Configuration.CASE_PROFILE_DIR);
+                if (caseProfile.exists()) {
+                    IOUtil.copyDirectory(caseProfile, new File(output, Configuration.CASE_PROFILE_DIR));
+                }
             }
 
             File binDir = new File(Configuration.getInstance().appRoot, "bin"); //$NON-NLS-1$

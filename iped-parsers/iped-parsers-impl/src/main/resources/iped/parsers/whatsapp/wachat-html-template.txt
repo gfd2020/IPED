@@ -18,7 +18,7 @@
         </script>
     </head>
     <body>
-        <div id="topbar">
+        <div id="topbar"${topbarclass}>
             <div style="display: inline-block; padding: 6px 0px 2px 6px;">
                 <img src="${avatar}" width="72" height="72">
             </div>
@@ -28,7 +28,7 @@
                 </span>
             </div>
         </div>
-        <div id="conversation"><br><br><br><br><br>
+        <div id="conversation">
         ${deleted}
         ${messages}
         <br><br><br>

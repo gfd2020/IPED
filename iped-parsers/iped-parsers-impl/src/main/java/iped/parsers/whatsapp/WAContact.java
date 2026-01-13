@@ -3,6 +3,10 @@ package iped.parsers.whatsapp;
 public class WAContact {
 
     public static final String waSuffix = "@s.whatsapp.net";
+    public static final String waStatusBroadcast = "status@broadcast";
+    public static final String waGroupSuffix = "@g.us";
+    public static final String waStatusSuffix = "@status";
+    public static final String waNewsletterSuffix = "@newsletter";
 
     private String id;
 
@@ -164,4 +168,10 @@ public class WAContact {
         return this.getFullId().hashCode();
     }
 
+    public boolean matches(WAContact o) {
+        if (id != null && o.id != null && id.equals(o.id)) {
+            return true;
+        }
+        return true;
+    }
 }

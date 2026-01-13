@@ -25,13 +25,17 @@ import javax.swing.ListSelectionModel;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
 
 import iped.data.IItem;
 import iped.engine.search.QueryBuilder;
 import iped.engine.task.HashTask;
+import iped.engine.task.jumplist.JumpListTask;
 import iped.exception.ParseException;
 import iped.exception.QueryNodeException;
 import iped.parsers.ares.AresParser;
@@ -77,6 +81,7 @@ public class ReferencedByTableModel extends BaseTableModel {
     @Override
     public Query createQuery(Document doc) {
         BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
+        QueryBuilder b = new QueryBuilder(App.get().appCase);
 
         // hashes
         String md5 = doc.get(HashTask.HASH.MD5.toString());
@@ -85,7 +90,6 @@ public class ReferencedByTableModel extends BaseTableModel {
         String edonkey = doc.get(HashTask.HASH.EDONKEY.toString());
         String hashes = Arrays.asList(md5, sha1, sha256, edonkey).stream().filter(StringUtils::isNotBlank).collect(Collectors.joining(" "));
         if (!hashes.isEmpty()) {
-            QueryBuilder b = new QueryBuilder(App.get().appCase);
             try {
                 queryBuilder.add(b.getQuery(ExtraProperties.LINKED_ITEMS + ":(" + hashes + ") "), Occur.SHOULD);
                 queryBuilder.add(b.getQuery(ExtraProperties.SHARED_HASHES + ":(" + hashes + ")"), Occur.SHOULD);
@@ -93,6 +97,43 @@ public class ReferencedByTableModel extends BaseTableModel {
                 e.printStackTrace();
             }
         }
+
+        // trackId
+        String trackId = doc.get(BasicProps.TRACK_ID);
+        if (StringUtils.isNotBlank(trackId)) {
+            String trackIdQuery = QueryBuilder.escape(BasicProps.TRACK_ID + ":" + trackId);
+            try {
+                queryBuilder.add(b.getQuery(ExtraProperties.LINKED_ITEMS + ":\"" + trackIdQuery + "\""), Occur.SHOULD);
+            } catch (ParseException | QueryNodeException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // jumpList:ids
+        String[] appIds = doc.getValues(JumpListTask.JUMPLIST_PROGRAM_APP_IDS);
+        for (String appId: appIds) {
+            String appIdQuery = QueryBuilder.escape(JumpListTask.JUMPLIST_PROGRAM_APP_IDS) + ":" + appId;
+            try {
+                queryBuilder.add(b.getQuery(ExtraProperties.LINKED_ITEMS + ":\"" + appIdQuery + "\""), Occur.SHOULD);
+            } catch (ParseException | QueryNodeException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // ufed:id
+        String ufedId = doc.get(ExtraProperties.UFED_ID);
+        if (StringUtils.isNotBlank(ufedId)) {
+            queryBuilder.add(new TermQuery(new Term(ExtraProperties.UFED_JUMP_TARGETS, ufedId)), Occur.SHOULD);
+            queryBuilder.add(new TermQuery(new Term(ExtraProperties.UFED_FILE_ID, ufedId)), Occur.SHOULD);
+            try {
+                queryBuilder.add(b.getQuery(ExtraProperties.LINKED_ITEMS + ":\"" + ufedId + "\""), Occur.SHOULD);
+            } catch (ParseException | QueryNodeException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // don't be referenced by itself
+        queryBuilder.add(IntPoint.newExactQuery(BasicProps.ID, Integer.parseInt(doc.get(BasicProps.ID))), Occur.MUST_NOT);
 
         return queryBuilder.build();
     }
