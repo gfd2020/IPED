@@ -7,7 +7,7 @@
 # Default implementation uses Vosk transcription on local CPU (slow and medium quality).
 # We include small portable models for 'en' and 'pt-BR', if you want to use a different language model
 # you should download it from https://alphacephei.com/vosk/models and put in 'models/vosk/[lang]' folder.
-implementationClass = iped.engine.task.transcript.VoskTranscriptTask
+#implementationClass = iped.engine.task.transcript.VoskTranscriptTask
 
 # Uses a local wav2vec2 implementation for transcription. Accuracy is much better than most Vosk models.
 # This is up to 10x slower than Vosk on high end CPUs. Using a good GPU is highly recommended!
@@ -19,7 +19,7 @@ implementationClass = iped.engine.task.transcript.VoskTranscriptTask
 # This is up to 4x slower than wav2vec2 depending on compared models. Using a high end GPU is strongly recommended!
 # Please check the installation steps: https://github.com/sepinf-inc/IPED/wiki/User-Manual#whisper
 # If you enable this, you must set 'whisperModel' param below.
-#implementationClass = iped.engine.task.transcript.WhisperTranscriptTask
+implementationClass = iped.engine.task.transcript.WhisperTranscriptTask
 
 # Uses a remote service for transcription.
 # The remote service is useful if you have a central server/cluster with many GPUs to be shared among processing nodes.
@@ -65,6 +65,9 @@ minTimeout = 180
 # Number of seconds to wait for each audio second transcription. 'minTimeout' param above is added to this.
 timeoutPerSec = 3
 
+# Enable SQLite's WAL mode to mitigate connection errors when the output directory is on a network share
+SQLiteWalMode = true
+
 #########################################
 # VoskTranscriptTask options
 #########################################
@@ -108,7 +111,7 @@ minWordScore = 0.5
 # If you know the language you want to transcribe, please set the 'language' option above.
 # 'language = auto' uses the 'locale' set on LocalConfig.txt
 # 'language = detect' uses auto detection, but it can cause mistakes
-whisperModel = medium
+whisperModel = ./models/whisper
 
 # Which device to use: 'cpu' or 'gpu'. For 'gpu', please see the official faster-whisper documentation
 # for the installation requirements: https://github.com/SYSTRAN/faster-whisper?tab=readme-ov-file#gpu  

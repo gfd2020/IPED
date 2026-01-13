@@ -1,5 +1,5 @@
 # Added unallocated space will be indexed. "addUnallocated" (FileSystemConfig.txt) and "parseUnknownFiles" (ParsingTaskConfig.txt) must be enabled.
-indexUnallocated = false
+indexUnallocated = true
 
 # Converts text to lowercase before indexing, making the search case-insensitive.
 # Disable only in exceptional cases to generate better dictionaries to use in case-sensitive password breaking.

@@ -257,8 +257,10 @@ public class ReportDialog implements ActionListener, TableModelListener {
         }
 
         if (e.getSource() == generate) {
-            if (isInputOK())
+            if (isInputOK()){
+                generate.setEnabled(false);
                 generateReport();
+            }
         }
 
         if (e.getSource() == selectAll) {
@@ -287,6 +289,7 @@ public class ReportDialog implements ActionListener, TableModelListener {
             e1.printStackTrace();
             JOptionPane.showMessageDialog(null, Messages.getString("ReportDialog.ReportError"), //$NON-NLS-1$
                     Messages.getString("ReportDialog.ErrorTitle"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
+            generate.setEnabled(true);
             return;
         }
         String keywords = this.keywords.getText().trim();
@@ -341,6 +344,7 @@ public class ReportDialog implements ActionListener, TableModelListener {
 
         } catch (Exception e) {
             e.printStackTrace();
+            generate.setEnabled(true);
         }
     }
 
@@ -365,6 +369,8 @@ public class ReportDialog implements ActionListener, TableModelListener {
 
                 } catch (Exception e) {
                     e.printStackTrace();
+                }finally{
+                    generate.setEnabled(true);
                 }
             }
         }.start();

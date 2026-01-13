@@ -33,19 +33,28 @@ def main():
     print(library_loaded, file=stdout, flush=True)
     print('whisperx' if whisperx_found else 'faster_whisper', file=stdout, flush=True)
     
-    if device != 'gpu':
-        cudaCount = 0
-        if compute_type == 'float16': # not supported on CPU
-            compute_type = 'int8'
-    else:
-        import GPUtil
-        cudaCount = len(GPUtil.getGPUs())
-        if cudaCount == 0:
-            raise RuntimeError('No GPU device detected!')
-    
-    print(str(cudaCount), file=stdout, flush=True)
+    cudaCount = 0
+    try:
+        from numba import cuda
+        from numba.cuda.cudadrv.driver import driver
+        cuda_min_sdk_version = (12,0)
+        cuda_min_version = (5,0) #(3,5) - CUDA SDK 11.8 MAX
+        dev_list = cuda.list_devices()
+        for dev in dev_list:
+            if dev.compute_capability >= cuda_min_version and driver.get_version() >= cuda_min_sdk_version:
+                cudaCount = len(dev_list)
+                deviceNum = dev.id
+                cuda.detect() # Print GPUs Info
+                break
+        del dev_list
+    except Exception as e:
+        pass
 
-    if cudaCount > 0:
+    print(str(cudaCount), file=stdout, flush=True)
+     
+    force_cpu = False
+
+    if cudaCount > 0 and not force_cpu:
         deviceId = 'cuda'
     else:
         deviceId = 'cpu'

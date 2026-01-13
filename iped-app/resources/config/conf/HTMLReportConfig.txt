@@ -4,7 +4,7 @@
 
 # Case information may be loaded from .asap file (Brazilian Federal Police) informed by command line optionin (-asap). 
 # If not used -asap option, default values below will be used.
-Header=ORGANIZATION HEADER<br>LABORATORY NAME<br>
+Header=SECRETARIA DE ESTADO DE FAZENDA DE MINAS GERAIS<br>SUPERINTENDÊNCIA DE FISCALIZAÇÃO<br>SUPERINTENDÊNCIA DE TECNOLOGIA DA INFORMAÇÃO
 RequestDate=xx/xx/201x
 ReportDate=xx/xx/201x
 RecordDate=xx/xx/201x
