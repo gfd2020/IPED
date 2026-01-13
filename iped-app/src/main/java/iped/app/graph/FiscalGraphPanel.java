@@ -218,7 +218,25 @@ public class FiscalGraphPanel extends JPanel {
         sb.append("<html>\n<head>\n");
         sb.append("<meta charset='UTF-8'>\n");
         sb.append("<title>Fiscal Graph</title>\n");
-        sb.append("<script src='https://unpkg.com/vis-network/standalone/umd/vis-network.min.js'></script>\n");
+        // Load local JS for offline support
+        String visJs = "";
+        try (java.io.InputStream is = getClass().getResourceAsStream("/js/vis-network.min.js")) {
+            if (is != null) {
+                visJs = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            } else {
+                // Fallback or log
+            }
+        } catch (Exception e) {
+            // Log error
+        }
+
+        if (visJs.isEmpty()) {
+            sb.append("<script src='https://unpkg.com/vis-network/standalone/umd/vis-network.min.js'></script>\n");
+        } else {
+            sb.append("<script>\n");
+            sb.append(visJs);
+            sb.append("\n</script>\n");
+        }
         sb.append("<style>\n");
         sb.append("  html, body { margin: 0; padding: 0; width: 100%; height: 100%; }\n");
         sb.append("  #graph { width: 100%; height: 100%; }\n");
