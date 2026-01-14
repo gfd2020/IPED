@@ -82,9 +82,7 @@
       "mimes": [
         "application/xml",
         "application/rdf+xml",
-        "application/rss+xml",
-        "application/x-nfe+xml",
-        "application/x-cte+xml"
+        "application/rss+xml"
       ]
     },
     {
