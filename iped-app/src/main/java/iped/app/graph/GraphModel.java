@@ -38,25 +38,8 @@ public class GraphModel {
         String[] fieldNames = getDefaultFieldNames(neo4jNode);
         String type = getFullType(neo4jNode);
         node.setType(type);
-        String label;
-        if (type.contains(GraphConfiguration.ORGANIZATION_LABEL)) {
-            String cnpj = (String) neo4jNode.getProperty("cnpj", "");
-            String name = (String) neo4jNode.getProperty(BasicProps.NAME, "");
-            String city = (String) neo4jNode.getProperty("city", "");
-            String state = (String) neo4jNode.getProperty("state", "");
-
-            if (name.length() > 25)
-                name = name.substring(0, 25) + "...";
-            label = cnpj;
-            if (!name.isEmpty())
-                label += " - " + name;
-
-            if (!city.isEmpty() || !state.isEmpty()) {
-                label += " - " + city + (city.isEmpty() || state.isEmpty() ? "" : "/") + state;
-            }
-        } else {
-            label = getLabel(neo4jNode, fieldNames);
-        }
+        String label = getLabel(neo4jNode, fieldNames);
+        node.setLabel(label);
 
         int dynSize = (int) (2 * Math.ceil(Math.log(neo4jNode.getDegree() + 1)));
 
