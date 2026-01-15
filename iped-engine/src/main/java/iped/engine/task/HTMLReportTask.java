@@ -396,7 +396,7 @@ public class HTMLReportTask extends AbstractTask {
         File pdf_cmds = File.createTempFile("pdf_cmds", ".tmp");
         pdf_cmds.deleteOnExit();
 
-        File pdfTempOutput = File.createTempFile(Messages.getString("HTMLReportTask.ReportFileName").replace(".htm",""), ".pdf");
+        File pdfTempOutput = File.createTempFile("report", ".pdf");
         pdfTempOutput.deleteOnExit();
 
         List<String> arguments = new ArrayList<String>();
@@ -511,7 +511,7 @@ public class HTMLReportTask extends AbstractTask {
             if (readThread != null)
                 readThread.interrupt();
 
-            copyFile(pdfTempOutput,outputFolder,"report.pdf");
+            copyFile(pdfTempOutput,outputFolder,Messages.getString("HTMLReportTask.ReportFileName").replace(".htm",".pdf"));
 
         }
 
