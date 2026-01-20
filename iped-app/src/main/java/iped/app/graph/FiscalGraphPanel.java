@@ -111,6 +111,8 @@ public class FiscalGraphPanel extends JPanel {
     private volatile String currentHtml;
     private volatile File tempHtmlFile;
     private JTextArea detailsArea;
+    private JavaBridge javaBridge;
+    private String globalStatsText = "";
 
     public FiscalGraphPanel() {
         setLayout(new BorderLayout());
@@ -142,11 +144,14 @@ public class FiscalGraphPanel extends JPanel {
             StackPane root = new StackPane();
             root.getChildren().add(webView);
 
+            // Initialize bridge
+            javaBridge = new JavaBridge(detailsArea);
+
             // Inject Java bridge when page loads
             webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
                 if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
                     JSObject win = (JSObject) webEngine.executeScript("window");
-                    win.setMember("java", new JavaBridge(detailsArea));
+                    win.setMember("java", javaBridge);
                 }
             });
 
@@ -335,6 +340,8 @@ public class FiscalGraphPanel extends JPanel {
         sb.append("    var edgeId = params.edges[0];\n");
         sb.append("    var edge = edges.get(edgeId);\n");
         sb.append("    if (window.java) window.java.select(edge.title);\n");
+        sb.append("  } else {\n");
+        sb.append("    if (window.java) window.java.showStats();\n");
         sb.append("  }\n");
         sb.append("});\n");
 
@@ -391,6 +398,11 @@ public class FiscalGraphPanel extends JPanel {
             List<FiscalEdge> edges = new ArrayList<>();
             java.util.Set<Long> nodeIds = new java.util.HashSet<>();
 
+            double gTotalValue = 0;
+            double gTotalIcms = 0;
+            long gTotalNFe = 0;
+            long gTotalCTe = 0;
+
             try {
                 GraphService graphService = GraphServiceFactoryImpl.getInstance().getGraphService();
                 GraphDatabaseService graphDb = graphService.getGraphDb();
@@ -445,6 +457,11 @@ public class FiscalGraphPanel extends JPanel {
                             long countNFe = ((Number) row.get("countNFe")).longValue();
                             long countCTe = ((Number) row.get("countCTe")).longValue();
 
+                            gTotalValue += value;
+                            gTotalIcms += icms;
+                            gTotalNFe += countNFe;
+                            gTotalCTe += countCTe;
+
                             StringBuilder edgeLabel = new StringBuilder();
                             edgeLabel.append("Total: ").append(nf.format(value));
                             edgeLabel.append("\nICMS: ").append(nf.format(icms));
@@ -479,6 +496,14 @@ public class FiscalGraphPanel extends JPanel {
                     }
 
                     tx.commit();
+
+                    // Format global stats
+                    StringBuilder stats = new StringBuilder();
+                    stats.append("Total Value: ").append(nf.format(gTotalValue)).append("\n");
+                    stats.append("Total ICMS: ").append(nf.format(gTotalIcms)).append("\n");
+                    stats.append("Total NFe: ").append(gTotalNFe).append("\n");
+                    stats.append("Total CTe: ").append(gTotalCTe);
+                    globalStatsText = stats.toString();
                 }
 
             } catch (Exception e) {
@@ -550,7 +575,7 @@ public class FiscalGraphPanel extends JPanel {
         }
     }
 
-    public static class JavaBridge {
+    public class JavaBridge {
         private final JTextArea detailsArea;
 
         public JavaBridge(JTextArea detailsArea) {
@@ -561,6 +586,15 @@ public class FiscalGraphPanel extends JPanel {
             javax.swing.SwingUtilities.invokeLater(() -> {
                 if (detailsArea != null) {
                     detailsArea.setText(text);
+                    detailsArea.setCaretPosition(0);
+                }
+            });
+        }
+
+        public void showStats() {
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                if (detailsArea != null) {
+                    detailsArea.setText(globalStatsText);
                     detailsArea.setCaretPosition(0);
                 }
             });

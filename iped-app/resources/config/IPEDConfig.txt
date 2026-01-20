@@ -167,6 +167,10 @@ enableDocThumbs = false
 # Generation settings can be modified in file "conf/HTMLReportConfig.txt"
 enableHTMLReport = true
 
+# Enables positional PDF parsing (results in JSON with text coordinates).
+# Required for improved Fiscal Data Extraction (NFe/CTe).
+enablePositionalPDFParser = true
+
 # Enables remote image classifier.
 # It performs classification of image and video files.
 # Advanced settings can be modified in file "conf/RemoteImageClassifierConfig.txt"

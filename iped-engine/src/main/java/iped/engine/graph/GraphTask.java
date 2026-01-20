@@ -100,11 +100,6 @@ public class GraphTask extends AbstractTask {
     private static final String NFE_PDF = "application/x-nfe+pdf";
     private static final String CTE_PDF = "application/x-cte+pdf";
 
-    private static final Pattern cnpjPattern = Pattern
-            .compile("\\b(\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2})\\b|\\b(\\d{14})\\b");
-
-    private static Pattern moneyPattern = Pattern.compile("(\\d{1,3}(?:\\.\\d{3})*,\\d{2})");
-
     private static final int MAX_PHONE_CACHE_KEY = 50 * 1024;
 
     private static Map<String, SortedSet<String>> formattedPhonesCache = Collections
@@ -262,7 +257,7 @@ public class GraphTask extends AbstractTask {
         // }
 
         if (mime.startsWith(NFE_XML) || mime.startsWith(CTE_XML) || mime.startsWith(NFE_PDF)
-                || mime.startsWith(CTE_PDF)) {
+                || mime.startsWith(CTE_PDF) || mime.equals("application/pdf")) {
             processNFeCTe(evidence);
         }
 
@@ -768,98 +763,46 @@ public class GraphTask extends AbstractTask {
 
     private void processNFeCTe(IItem evidence) {
         String mime = evidence.getMediaType().toString();
-        boolean isPdf = mime.endsWith("+pdf");
+        boolean isPdf = mime.endsWith("pdf");
 
-        String emitCNPJ = null;
-        String emitName = null;
+        String remetCNPJ = null;
+        String remetName = null;
         String destCNPJ = null;
         String destName = null;
         double vProd = 0.0;
         double vICMS = 0.0;
-        String emitCity = "", emitState = "", destCity = "", destState = "";
+        // Metadata fields for graph
+        String remetCity = "", remetState = "", destCity = "", destState = "";
 
         try {
             if (isPdf) {
-                // Parse PDF Text
-                // This is a best-effort approach using Regex on extracted text
-                // Since layout varies, we look for keywords and proximity
-                String text = "";
-                try (java.io.Reader reader = evidence.getTextReader()) {
-                    if (reader != null) {
-                        char[] buffer = new char[8192];
-                        StringBuilder sb = new StringBuilder();
-                        int read;
-                        while ((read = reader.read(buffer, 0, buffer.length)) > 0) {
-                            sb.append(buffer, 0, read);
-                        }
-                        text = sb.toString();
-                    }
+                // Metadata extraction (populated by PDFTextParser)
+                Metadata m = evidence.getMetadata();
+                String docType = m.get(ExtraProperties.FISCAL_DOCTYPE);
+
+                if (m.get(ExtraProperties.FISCAL_DOCTYPE) != null) {
+                    remetCNPJ = m.get(ExtraProperties.FISCAL_REMET_CNPJ);
+                    remetName = m.get(ExtraProperties.FISCAL_REMET_NAME);
+                    remetCity = m.get(ExtraProperties.FISCAL_REMET_CITY);
+                    remetState = m.get(ExtraProperties.FISCAL_REMET_UF);
+
+                    destCNPJ = m.get(ExtraProperties.FISCAL_DEST_CNPJ);
+                    destName = m.get(ExtraProperties.FISCAL_DEST_NAME);
+                    destCity = m.get(ExtraProperties.FISCAL_DEST_CITY);
+                    // Use dest state if available, if (remetCity == null) remetCity = "";
+                    if (remetState == null)
+                        remetState = "";
+
+                    // Parser has remetUF. Dest city is extracted.
+
+                    String vVal = m.get(ExtraProperties.FISCAL_VALUE);
+                    if (vVal != null)
+                        vProd = parseDoubleSafe(vVal);
+
+                    String vIcms = m.get(ExtraProperties.FISCAL_ICMS);
+                    if (vIcms != null)
+                        vICMS = parseDoubleSafe(vIcms);
                 }
-
-                if (text.isEmpty())
-                    return;
-
-                // Simple heuristc:
-                // First CNPJ found usually Emitter (or header).
-                // Second usually Dest.
-                // We need to be careful.
-                // Let's try to find "EMITENTE" or "Remetente" and "DESTINATÁRIO"
-
-                // For simplicity in this task, we will extract all CNPJs and assume 1st is
-                // Emit, 2nd is Dest if distinct
-                // And look for "Valor Total dos Produtos" followed by valid money
-
-                // Extract CNPJs from text
-                List<String> textCnpjs = new ArrayList<>();
-                Matcher m = cnpjPattern.matcher(text);
-                while (m.find()) {
-                    String val = m.group(0).replaceAll("[^0-9]", "");
-                    if (isValidCNPJ(val) && !textCnpjs.contains(val))
-                        textCnpjs.add(val);
-                }
-
-                // Context-aware extraction
-                // Look for "CNPJ" / "CPF:" followed by one of the found valid CNPJs?
-                // Or "Remetente:" / "Destinatário:"
-                emitCNPJ = extractCnpjAfterKeyword(text, "Remetente", textCnpjs);
-                if (emitCNPJ == null && textCnpjs.size() > 0)
-                    emitCNPJ = textCnpjs.get(0);
-
-                destCNPJ = extractCnpjAfterKeyword(text, "Destinat\u00E1rio", textCnpjs); // "Destinatário"
-                if (destCNPJ == null)
-                    destCNPJ = extractCnpjAfterKeyword(text, "Destinatario", textCnpjs);
-
-                // Fallback: if dest is null, use second unique CNPJ
-                if (destCNPJ == null && textCnpjs.size() > 1) {
-                    for (String c : textCnpjs) {
-                        if (!c.equals(emitCNPJ)) {
-                            destCNPJ = c;
-                            break;
-                        }
-                    }
-                }
-
-                // Extract Values using keywords
-                vProd = extractMoneyAfterKeyword(text, "Valor:");
-                if (vProd == 0.0)
-                    vProd = extractMoneyAfterKeyword(text, "Valor Total");
-
-                vICMS = extractMoneyAfterKeyword(text, "Valor do ICMS");
-                if (vICMS == 0.0)
-                    vICMS = extractMoneyAfterKeyword(text, "ICMS:");
-                if (vICMS == 0.0)
-                    vICMS = extractMoneyAfterKeyword(text, "V. ICMS");
-
-                // GraphTask: Detailed logging for PDF extraction debugging
-                // logger.info(String.format(
-                // "GraphTask Extraction [%s]: Type=%s, Emit='%s' (%s), Dest='%s' (%s),
-                // Val=%.2f, ICMS=%.2f",
-                // evidence.getName(),
-                // (evidence.getMediaType().toString().toLowerCase().contains("cte") ? "CTe" :
-                // "NFe"),
-                // emitName, emitCNPJ,
-                // destName, destCNPJ,
-                // vProd, vICMS));
 
             } else {
                 // Parse XML
@@ -869,15 +812,15 @@ public class GraphTask extends AbstractTask {
                     Document doc = dBuilder.parse(is);
                     doc.getDocumentElement().normalize();
 
-                    // Emitter
+                    // Remetente (Sender)
                     Element emit = (Element) doc.getElementsByTagName("emit").item(0);
                     if (emit != null) {
-                        emitCNPJ = getTagValue(emit, "CNPJ");
-                        emitName = getTagValue(emit, "xNome");
+                        remetCNPJ = getTagValue(emit, "CNPJ");
+                        remetName = getTagValue(emit, "xNome");
                         Element enderEmit = (Element) emit.getElementsByTagName("enderEmit").item(0);
                         if (enderEmit != null) {
-                            emitCity = getTagValue(enderEmit, "xMun");
-                            emitState = getTagValue(enderEmit, "UF");
+                            remetCity = getTagValue(enderEmit, "xMun");
+                            remetState = getTagValue(enderEmit, "UF");
                         }
                     }
 
@@ -890,6 +833,37 @@ public class GraphTask extends AbstractTask {
                         if (enderDest != null) {
                             destCity = getTagValue(enderDest, "xMun");
                             destState = getTagValue(enderDest, "UF");
+                        }
+                    }
+
+                    // Check Operation Type (tpNF)
+                    // 0 = Entry (Entrada) -> Emitente is actually the one SENDING goods to us?
+                    // Wait, if I emit an Entry Note (tpNF=0), I am RECEIVING goods.
+                    // So "Emitente" (me) is the Destination. "Destinatario" (supplier) is the
+                    // Sender.
+                    // User Request: "se tpNF=0, deve-se inverter isso, sendo o 'emit' o
+                    // destinatário e o 'dest' o remetente"
+                    // Current default maps Emit tag -> remet variables.
+                    // So if tpNF=0, we swap.
+                    Element ide = (Element) doc.getElementsByTagName("ide").item(0);
+                    if (ide != null) {
+                        String tpNF = getTagValue(ide, "tpNF");
+                        if ("0".equals(tpNF)) {
+                            // Swap
+                            String tmpCNPJ = remetCNPJ;
+                            String tmpName = remetName;
+                            String tmpCity = remetCity;
+                            String tmpState = remetState;
+
+                            remetCNPJ = destCNPJ;
+                            remetName = destName;
+                            remetCity = destCity;
+                            remetState = destState;
+
+                            destCNPJ = tmpCNPJ;
+                            destName = tmpName;
+                            destCity = tmpCity;
+                            destState = tmpState;
                         }
                     }
 
@@ -917,18 +891,18 @@ public class GraphTask extends AbstractTask {
             }
 
             // Create Nodes and Rel
-            if (emitCNPJ != null && destCNPJ != null) {
-                // Ensure emitted CNPJ is valid if it came from XML too? XML usually trusted,
+            if (remetCNPJ != null && destCNPJ != null) {
+                // Ensure remetented CNPJ is valid if it came from XML too? XML usually trusted,
                 // but check doesn't hurt.
                 // Actually XML ones are usually just digits. We can leave as is.
 
-                Map<String, Object> emitProps = new HashMap<>();
-                emitProps.put("name", emitName);
-                if (emitCity != null && !emitCity.isEmpty())
-                    emitProps.put("city", emitCity);
-                if (emitState != null && !emitState.isEmpty())
-                    emitProps.put("state", emitState);
-                String emitId = writeCompanyNode(emitCNPJ, emitName, emitProps);
+                Map<String, Object> remetProps = new HashMap<>();
+                remetProps.put("name", remetName);
+                if (remetCity != null && !remetCity.isEmpty())
+                    remetProps.put("city", remetCity);
+                if (remetState != null && !remetState.isEmpty())
+                    remetProps.put("state", remetState);
+                String remetId = writeCompanyNode(remetCNPJ, remetName, remetProps);
 
                 Map<String, Object> destProps = new HashMap<>();
                 destProps.put("name", destName);
@@ -959,53 +933,17 @@ public class GraphTask extends AbstractTask {
                 props.put(RELATIONSHIP_SOURCE, evidence.getDataSource().getUUID());//
 
                 // Use FISCAL_TRANSACTION as requested
-                graphFileWriter.writeRelationship(emitId, DynLabel.label(GraphConfiguration.ORGANIZATION_LABEL),
+                graphFileWriter.writeRelationship(remetId, DynLabel.label(GraphConfiguration.ORGANIZATION_LABEL),
                         "cnpj", destCNPJ,
                         DynRelationshipType.withName("FISCAL_TRANSACTION"), props);
             } else {
                 // logger.info("GraphTask: Skipping NFe/CTe " + evidence.getName() + " - Missing
-                // CNPJs. Emit: " + emitCNPJ
+                // CNPJs. Remet: " + remetCNPJ
                 // + ", Dest: " + destCNPJ);
             }
         } catch (Exception e) {
             logger.error("Error processing NFe/CTe graph for item " + evidence.getName(), e);
         }
-    }
-
-    private String extractCnpjAfterKeyword(String text, String keyword, List<String> candidates) {
-        int idx = text.indexOf(keyword);
-        if (idx == -1)
-            idx = text.indexOf(keyword.toUpperCase());
-
-        if (idx >= 0) {
-            // Look ahead 200 chars for a CNPJ that is in our candidates list
-            String sub = text.substring(idx, Math.min(idx + 200, text.length()));
-            Matcher m = cnpjPattern.matcher(sub);
-            if (m.find()) {
-                return m.group(0).replaceAll("[^0-9]", "");
-            }
-        }
-        return null;
-    }
-
-    private double extractMoneyAfterKeyword(String text, String keyword) {
-        // Case insensitive search
-        int idx = text.toLowerCase().indexOf(keyword.toLowerCase());
-        if (idx >= 0) {
-            String sub = text.substring(idx + keyword.length());
-            // Take first 50 chars to look for number
-            if (sub.length() > 50)
-                sub = sub.substring(0, 50);
-            Matcher m = moneyPattern.matcher(sub);
-            if (m.find()) {
-                String val = m.group(1).replace(".", "").replace(",", ".");
-                try {
-                    return Double.parseDouble(val);
-                } catch (NumberFormatException e) {
-                }
-            }
-        }
-        return 0.0;
     }
 
     private String getTagValue(Element element, String tagName) {
@@ -1016,71 +954,6 @@ public class GraphTask extends AbstractTask {
             return nodeList.item(0).getTextContent();
         }
         return null;
-    }
-
-    private static boolean isValidCNPJ(String cnpj) {
-        if (cnpj == null || cnpj.length() != 14)
-            return false;
-
-        // Check for repeated digits (blacklist)
-        if (cnpj.matches("^(\\d)\\1+$"))
-            return false;
-
-        try {
-            int sm, i, r, num, peso;
-            char dig13, dig14;
-
-            sm = 0;
-            peso = 2;
-            for (i = 11; i >= 0; i--) {
-                num = (int) (cnpj.charAt(i) - 48);
-                sm = sm + (num * peso);
-                peso = peso + 1;
-                if (peso == 10)
-                    peso = 2;
-            }
-
-            r = sm % 11;
-            if ((r == 0) || (r == 1))
-                dig13 = '0';
-            else
-                dig13 = (char) ((11 - r) + 48);
-
-            sm = 0;
-            peso = 2;
-            for (i = 12; i >= 0; i--) {
-                num = (int) (cnpj.charAt(i) - 48);
-                sm = sm + (num * peso);
-                peso = peso + 1;
-                if (peso == 10)
-                    peso = 2;
-            }
-
-            r = sm % 11;
-            if ((r == 0) || (r == 1))
-                dig14 = '0';
-            else
-                dig14 = (char) ((11 - r) + 48);
-
-            return (dig13 == cnpj.charAt(12)) && (dig14 == cnpj.charAt(13));
-        } catch (java.util.InputMismatchException e) {
-            return false;
-        }
-    }
-
-    private double parseDoubleSafe(String val) {
-        if (val == null || val.isEmpty())
-            return 0.0;
-        try {
-            // Replace non-breaking spaces and other weird whitespace
-            val = val.replaceAll("[^0-9,.]", "");
-            val = val.replace(".", "").replace(",", "."); // Handle Brazilian currency format (1.000,00 -> 1000.00)
-            if (val.isEmpty())
-                return 0.0;
-            return Double.parseDouble(val);
-        } catch (NumberFormatException e) {
-            return 0.0;
-        }
     }
 
     private String writeCompanyNode(String cnpj, String name) throws IOException {
@@ -1236,4 +1109,14 @@ public class GraphTask extends AbstractTask {
         }
     }
 
+    private double parseDoubleSafe(String val) {
+        if (val == null)
+            return 0.0;
+        try {
+            val = val.replace(".", "").replace(",", ".");
+            return Double.parseDouble(val);
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
 }
