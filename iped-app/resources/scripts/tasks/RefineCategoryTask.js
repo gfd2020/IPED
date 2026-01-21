@@ -427,54 +427,8 @@ function process(e) {
 		if (name.indexOf("-dctfs1") !== -1 || name.indexOf("-dctfs2") !== -1)
 			e.addCategory("Tax Returns and Receipts DCTF");
 
-		if (name.endsWith(".pdf") || mime.indexOf("pdf") !== -1) {
 
-			// java.lang.System.out.println("DEBUG: Inspecting likely PDF: " + name + " | Mime: " + mime + " | Cats: " + categorias);
 
-			var tiStream = null;
-			try {
-				tiStream = e.getTikaStream();
-				if (tiStream != null) {
-					var parser = new org.apache.tika.parser.pdf.PDFParser();
-					var handler = new org.apache.tika.sax.BodyContentHandler(100 * 1024); // Check first 100k chars
-					var metadata = new org.apache.tika.metadata.Metadata();
-					var context = new org.apache.tika.parser.ParseContext();
-
-					try {
-						parser.parse(tiStream, handler, metadata, context);
-					} catch (err) {
-						// Ignore parse errors, likely due to handler limit or malformed PDF
-					}
-
-					var text = handler.toString();
-					var textLower = text.toLowerCase();
-
-					// DEBUG
-					// java.lang.System.out.println("DEBUG: Text extracted len=" + text.length());
-					// java.lang.System.out.println("DEBUG: Text start: " + text.substring(0, Math.min(text.length(), 200)).replace(/\n/g, " "));
-
-					if (textLower.indexOf("documento auxiliar da nota fiscal") !== -1 ||
-						(textLower.indexOf("danfe") !== -1 && textLower.indexOf("chave de acesso") !== -1)) {
-						//e.setMediaTypeStr("application/x-nfe+pdf");
-						e.addCategory("Tax Invoices");
-						// java.lang.System.out.println("DEBUG: Detected NFe: " + name);
-					} else if (textLower.indexOf("documento auxiliar do conhecimento de transporte") !== -1 ||
-						(textLower.indexOf("dacte") !== -1 && textLower.indexOf("conhecimento de transporte") !== -1)) {
-						//e.setMediaTypeStr("application/x-cte+pdf");
-						e.addCategory("Eletronic Transport Documents");
-						// java.lang.System.out.println("DEBUG: Detected CTe: " + name);
-					}
-				} else {
-					// java.lang.System.out.println("DEBUG: TikaStream is null for " + name);
-				}
-			} catch (err) {
-				// java.lang.System.out.println("DEBUG: Error parsing PDF with Tika: " + err);
-			} finally {
-				if (tiStream != null) {
-					try { tiStream.close(); } catch (e) { }
-				}
-			}
-		}
 	}
 	if (((path.indexOf("pdcomp") !== -1) ||
 		(path.indexOf("perdcomp") !== -1))

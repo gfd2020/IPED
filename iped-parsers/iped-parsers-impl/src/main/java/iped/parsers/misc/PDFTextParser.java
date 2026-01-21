@@ -79,10 +79,12 @@ public class PDFTextParser extends PDFParser {
     public static final String PROCESS_INLINE_IMAGES = "pdfparser.processInlineImages"; //$NON-NLS-1$
     public static final String CREATE_THUMB = "pdfparser.createThumb"; //$NON-NLS-1$
     public static final String THUMB_SIZE = "pdfparser.thumbSize"; //$NON-NLS-1$
+    public static final String ENABLE_POSITIONAL = "pdfparser.enablePositional"; //$NON-NLS-1$
 
     private int maxCharsToOcr = Integer.valueOf(System.getProperty(MAX_CHARS_TO_OCR, "100")); //$NON-NLS-1$
     private boolean sortPDFChars = Boolean.valueOf(System.getProperty(SORT_PDF_CHARS, "false")); //$NON-NLS-1$
     private boolean processEmbeddedImages = Boolean.valueOf(System.getProperty(PROCESS_INLINE_IMAGES, "false")); //$NON-NLS-1$
+    private boolean enablePositional = Boolean.valueOf(System.getProperty(ENABLE_POSITIONAL, "true")); //$NON-NLS-1$
 
     private boolean useIcePDFParsing = false;
     private int maxMainMemoryBytes = 100000000;
@@ -128,14 +130,13 @@ public class PDFTextParser extends PDFParser {
     public Set<MediaType> getSupportedTypes(ParseContext arg0) {
         return SUPPORTED_TYPES;
     }
-    
 
     @Override
     public void parse(InputStream stream, ContentHandler handler, Metadata metadata, ParseContext context)
             throws IOException, SAXException, TikaException {
 
         metadata.set(HttpHeaders.CONTENT_TYPE, "application/pdf"); //$NON-NLS-1$
-        
+
         ItemInfo itemInfo = context.get(ItemInfo.class);
 
         handler.startDocument();
@@ -147,7 +148,8 @@ public class PDFTextParser extends PDFParser {
 
             File file = null;
             Exception exception = null;
-            boolean createThumb = Boolean.valueOf(System.getProperty(CREATE_THUMB)) && context.get(ComputeThumb.class) != null;
+            boolean createThumb = Boolean.valueOf(System.getProperty(CREATE_THUMB))
+                    && context.get(ComputeThumb.class) != null;
             if (ocrParser.isEnabled() || createThumb)
                 file = tis.getFile();
 
@@ -155,6 +157,9 @@ public class PDFTextParser extends PDFParser {
 
             if (useIcePDFParsing) {
                 numPages = icePDFParse(tis, countHandler, metadata);
+
+            } else if (enablePositional) {
+                numPages = positionalParse(tis, countHandler, metadata);
 
             } else {
                 if (sortPDFChars) {
@@ -209,13 +214,14 @@ public class PDFTextParser extends PDFParser {
                     ocrParser.parse(tis, countHandler, metadata, context);
 
                 } catch (Exception e) {
-                    LOGGER.warn("OCRParser error on '{}' ({} bytes)\t{}", itemInfo.getPath(), file.length(), e.toString()); //$NON-NLS-1$
+                    LOGGER.warn("OCRParser error on '{}' ({} bytes)\t{}", itemInfo.getPath(), file.length(), //$NON-NLS-1$
+                            e.toString());
                     LOGGER.debug("", e);
                 } finally {
                     tis.close();
                 }
             }
-            
+
             if (createThumb) {
                 byte[] thumb = null;
                 try (PDFToThumb pdfToThumb = new PDFToThumb()) {
@@ -228,7 +234,8 @@ public class PDFTextParser extends PDFParser {
                     thumb = baos.toByteArray();
                 } catch (Throwable t) {
                     thumb = new byte[0];
-                    LOGGER.warn("PDF thumb error on '{}' ({} bytes)\t{}", itemInfo.getPath(), file.length(), t.toString()); //$NON-NLS-1$
+                    LOGGER.warn("PDF thumb error on '{}' ({} bytes)\t{}", itemInfo.getPath(), file.length(), //$NON-NLS-1$
+                            t.toString());
                     LOGGER.debug("", t);
                 } finally {
                     metadata.set(ExtraProperties.THUMBNAIL_BASE64, Base64.getEncoder().encodeToString(thumb));
@@ -319,6 +326,20 @@ public class PDFTextParser extends PDFParser {
                 iceDoc.dispose();
         }
 
+    }
+
+    private int positionalParse(TikaInputStream tis, ContentHandler handler, Metadata metadata)
+            throws IOException, SAXException {
+        PDFPositionalTextParser parser = new PDFPositionalTextParser();
+        String json = parser.parseToJson(tis, metadata);
+        char[] chars = json.toCharArray();
+        handler.characters(chars, 0, chars.length);
+
+        int numPages = 1;
+        if (metadata.get("xmpTPg:NPages") != null) //$NON-NLS-1$
+            numPages = Integer.parseInt(metadata.get("xmpTPg:NPages")); //$NON-NLS-1$
+
+        return numPages;
     }
 
 }

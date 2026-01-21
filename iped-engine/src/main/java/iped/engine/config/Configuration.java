@@ -108,6 +108,11 @@ public class Configuration {
         if (mainConfig.exists()) {
             properties.load(mainConfig);
         }
+
+        String enablePositionalPDF = properties.getProperty("enablePositionalPDFParser");
+        if (enablePositionalPDF != null) {
+            System.setProperty("pdfparser.enablePositional", enablePositionalPDF.trim());
+        }
     }
 
     public void saveIpedRoot(String path) throws IOException {
@@ -192,7 +197,7 @@ public class Configuration {
         addPluginJarsToConfigurationLookup(configDirectory, pluginConfig);
 
         configManager.addObject(new SplashScreenConfig());
-        
+
         if (!loadAll) {
             configManager.loadConfigs();
             return;
@@ -223,7 +228,6 @@ public class Configuration {
         }
 
         configManager.loadConfigs();
-
 
         // blocks internet access from html viewers
         DefaultPolicy policy = new DefaultPolicy();

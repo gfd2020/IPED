@@ -23,6 +23,7 @@
     <task class="iped.engine.task.transcript.AudioTranscriptTask"></task>
     <task class="iped.engine.task.video.VideoThumbTask"></task> <!--see issue #100-->
     <task class="iped.engine.task.ParsingTask"></task>
+    <task script="FiscalDataExtractionTask.py"></task>
     
     <task class="iped.engine.task.QRCodeTask"></task>
     <task class="iped.engine.task.regex.RegexTask"></task>
