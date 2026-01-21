@@ -4641,3 +4641,7 @@ CarvedOffset = java.lang.Long
 mediaSize = java.lang.Long
 mediaMime = java.lang.String
 mediaName = java.lang.String
+pdf:fiscal:icms:number = java.lang.String
+fiscal:icms = java.lang.String
+pdf:fiscal:value:number = java.lang.String
+fiscal:value = java.lang.String
