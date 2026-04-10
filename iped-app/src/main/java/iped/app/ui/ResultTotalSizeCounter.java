@@ -36,6 +36,9 @@ public class ResultTotalSizeCounter {
                     NumericDocValues ndv = atomicReader.getNumericDocValues(IndexItem.LENGTH);
                     for (IItemId item : result.getIterator()) {
                         int doc = App.get().appCase.getLuceneId(item);
+                        if (doc < 0) {
+                            continue;
+                        }
                         if (ndv.advanceExact(doc)) {
                             volume += ndv.longValue();
                         }

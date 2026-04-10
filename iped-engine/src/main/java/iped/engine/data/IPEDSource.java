@@ -831,10 +831,17 @@ public class IPEDSource implements IIPEDSource {
     }
 
     public int getLuceneId(IItemId itemId) {
-        return docs[itemId.getId()];
+        int id = itemId.getId();
+        if (id < 0 || id >= docs.length) {
+            return -1;
+        }
+        return docs[id];
     }
 
     public int getLuceneId(int id) {
+        if (id < 0 || id >= docs.length) {
+            return -1;
+        }
         return docs[id];
     }
 

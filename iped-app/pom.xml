@@ -13,6 +13,7 @@
     <properties>
     	<release.dir>${project.parent.build.directory}/release/iped-${project.version}</release.dir>
     	<parent.root>${resources.dir}/../..</parent.root>
+    	<skipRegripper>false</skipRegripper>
     </properties>
     
     <dependencies>
@@ -74,6 +75,7 @@
 					</execution>
 				</executions>
 				<configuration>
+					<skip>${skipRegripper}</skip>
 					<url>https://github.com/sepinf-inc/RegRipper3.0/archive/refs/tags/3.0-p3.zip</url>
 					<unpack>true</unpack>
 					<fileMappers>

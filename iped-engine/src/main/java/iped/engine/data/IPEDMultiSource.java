@@ -298,7 +298,11 @@ public class IPEDMultiSource extends IPEDSource {
         int sourceid = id.getSourceId();
         IIPEDSource atomicCase = getAtomicSourceBySourceId(sourceid);
         int baseDoc = baseDocCache.get(sourceid);
-        return atomicCase.getLuceneId(id.getId()) + baseDoc;
+        int luceneId = atomicCase.getLuceneId(id.getId());
+        if (luceneId < 0) {
+            return -1;
+        }
+        return luceneId + baseDoc;
     }
     
     @SuppressWarnings("resource")

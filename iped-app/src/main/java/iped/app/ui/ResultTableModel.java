@@ -235,6 +235,10 @@ public class ResultTableModel extends AbstractTableModel implements SearchResult
         IItemId item = App.get().ipedResult.getItem(row);
         int docId = App.get().appCase.getLuceneId(item);
 
+        if (docId < 0) {
+            return ""; //$NON-NLS-1$
+        }
+
         if (docId != lastDocRead) {
             try {
                 doc = app.appCase.getSearcher().doc(docId);

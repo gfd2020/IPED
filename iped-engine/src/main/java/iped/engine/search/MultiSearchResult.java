@@ -1,5 +1,6 @@
 package iped.engine.search;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -97,14 +98,18 @@ public class MultiSearchResult implements IMultiSearchResult {
 
         // System.out.println("multi Result");
 
-        MultiSearchResult result = new MultiSearchResult();
-        result.scores = luceneResult.getScores();
-        result.ids = new ItemId[luceneResult.getLength()];
+        ArrayList<IItemId> validIds = new ArrayList<>();
+        ArrayList<Float> validScores = new ArrayList<>();
+        float[] srcScores = luceneResult.getScores();
 
         if (luceneResult.getLength() <= IPEDSearcher.MAX_SIZE_TO_SCORE) {
             int[] docs = luceneResult.getLuceneIds();
             for (int i = 0; i < docs.length; i++) {
-                result.ids[i] = iSource.getItemId(docs[i]);
+                IItemId itemId = iSource.getItemId(docs[i]);
+                if (itemId != null && itemId.getId() >= 0) {
+                    validIds.add(itemId);
+                    validScores.add(srcScores[i]);
+                }
             }
 
             // Otimização: considera que itens estão em ordem crescente do LuceneId (qdo não
@@ -122,8 +127,19 @@ public class MultiSearchResult implements IMultiSearchResult {
                     baseDoc = iSource.getBaseLuceneId(atomicSource);
                     maxdoc = atomicSource.getReader().maxDoc();
                 }
-                result.ids[i] = new ItemId(sourceId, atomicSource.getId(docs[i] - baseDoc));
+                int id = atomicSource.getId(docs[i] - baseDoc);
+                if (id >= 0) {
+                    validIds.add(new ItemId(sourceId, id));
+                    validScores.add(srcScores[i]);
+                }
             }
+        }
+
+        MultiSearchResult result = new MultiSearchResult();
+        result.ids = validIds.toArray(new IItemId[0]);
+        result.scores = new float[validScores.size()];
+        for (int i = 0; i < result.scores.length; i++) {
+            result.scores[i] = validScores.get(i);
         }
 
         return result;
@@ -197,8 +213,13 @@ public class MultiSearchResult implements IMultiSearchResult {
             this.ipedSource = ipedSource;
             this.docids = new RoaringBitmap();
             for (int i = 0; i < ids.length; i++) {
+                if (ids[i].getId() < 0) {
+                    continue;
+                }
                 int lucId = ipedSource.getLuceneId(ids[i]);
-                docids.add(lucId);
+                if (lucId >= 0) {
+                    docids.add(lucId);
+                }
             }
         }
     }
